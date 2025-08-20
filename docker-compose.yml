@@ -1,59 +1,129 @@
 services:
-  # Backend servis 1: Stakeholders
+  # 1. Service Discovery
+  eureka-server:
+    build: ./eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # 2. API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+    ports:
+      - "8000:80" # Spoljašnji:Unutrašnji
+    networks:
+      - app-network
+    environment:
+      - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
+      # --- POČETAK FINALNE ISPRAVKE: Kažemo .NET-u da sluša na portu 80 ---
+      - ASPNETCORE_URLS=http://+:80
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
+
+  # 3. Stakeholders Servis
   stakeholders-service:
     build:
       context: ./services/stakeholders-service
-    ports:
-      - "8081:8080" # Pristup sa vašeg računara: localhost:8081
+    environment:
+      - PORT=8001
+      - SERVICE_NAME=STAKEHOLDERS-SERVICE
+      - EUREKA_URL=http://eureka-server:8761/eureka
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_HOST=stakeholders-db
+      - DB_NAME=stakeholders_db
     networks:
       - app-network
     depends_on:
-      - mysql-db
+      stakeholders-db:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy
 
-  # Backend servis 2: Blog
+  # 4. Blog Servis
   blog-service:
     build:
       context: ./services/blog-service
-    ports:
-      - "8082:8080" # Pristup sa vašeg računara: localhost:8082
+    environment:
+      - PORT=8002
+      - SERVICE_NAME=BLOG-SERVICE
+      - EUREKA_URL=http://eureka-server:8761/eureka
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_HOST=blog-db
+      - DB_NAME=blog_db
     networks:
       - app-network
     depends_on:
-      - mysql-db
+      blog-db:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy
 
-  # Frontend aplikacija
+  # 5. Frontend
   frontend:
     build:
       context: ./frontend
     ports:
-      - "3000:80" # Pristup sa vašeg računara: localhost:3000
+      - "3000:80"
     networks:
       - app-network
     depends_on:
-      - stakeholders-service
-      - blog-service
+      - api-gateway
 
-  # MySQL Baza Podataka
-  mysql-db:
+  # 6. Baze Podataka
+  stakeholders-db:
     image: mysql:8.0
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: "root_password"
-      MYSQL_DATABASE: "turisticka_agencija_db"
+      MYSQL_DATABASE: "stakeholders_db"
       MYSQL_USER: "user"
       MYSQL_PASSWORD: "password"
     ports:
-      - "3307:3306" # Pristup bazi sa vašeg računara preko alata (npr. Workbench)
+      - "3307:3306"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - stakeholders-data:/var/lib/mysql
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
 
-# Mreža koja omogućava komunikaciju između svih servisa
+  blog-db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "root_password"
+      MYSQL_DATABASE: "blog_db"
+      MYSQL_USER: "user"
+      MYSQL_PASSWORD: "password"
+    ports:
+      - "3308:3306"
+    volumes:
+      - blog-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
 networks:
   app-network:
     driver: bridge
 
-# Volumen za čuvanje podataka baze
 volumes:
-  mysql-data:
+  stakeholders-data:
+  blog-data:

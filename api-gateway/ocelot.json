@@ -1,0 +1,30 @@
+{
+  "Routes": [
+    {
+      "UpstreamPathTemplate": "/stakeholders/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ],
+
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "stakeholders-service",
+          "Port": 8001
+        }
+      ],
+      "DownstreamPathTemplate": "/{everything}"
+    },
+    {
+      "UpstreamPathTemplate": "/blogs/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ],
+
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "blog-service",
+          "Port": 8002
+        }
+      ],
+      "DownstreamPathTemplate": "/{everything}"
+    }
+  ]
+}

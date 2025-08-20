@@ -1,0 +1,25 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "http",
+      "ServiceName": "STAKEHOLDERS-SERVICE",
+      "UpstreamPathTemplate": "/stakeholders/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
+    },
+    {
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "http",
+      "ServiceName": "BLOG-SERVICE",
+      "UpstreamPathTemplate": "/blogs/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
+    }
+  ],
+  "GlobalConfiguration": {
+    "ServiceDiscoveryProvider": {
+      "Host": "eureka-server",
+      "Port": 8761,
+      "Type": "Eureka"
+    }
+  }
+}
