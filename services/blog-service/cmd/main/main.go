@@ -10,6 +10,7 @@ import (
 
 	// NOVI IMPORT: Uvozimo store paket iz blog-service-a
 	"blog-service/internal/store"
+	"github.com/gin-contrib/cors" // <-- 1. NOVI IMPORT
 	"github.com/gin-gonic/gin"
 	"github.com/hudl/fargo"
 )
@@ -92,6 +93,14 @@ func main() {
 	registerWithEureka(serviceName, port)
 
 	router := gin.Default()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})

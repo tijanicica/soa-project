@@ -1,0 +1,1 @@
+export function TouristDashboard() { return <div className="p-4"><h1>Tourist Dashboard</h1></div>; }

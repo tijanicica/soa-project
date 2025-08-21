@@ -1,18 +1,15 @@
-import path from "path"
-import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite' // <-- 1. Uvezite plagin
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-// Ako pratite vodič koji koristi @tailwindcss/vite plugin,
-// onda ga prvo instalirajte: npm install -D @tailwindcss/vite
-// i dodajte ovaj import:
-import tailwindcss from "@tailwindcss/vite"
- 
-// https://vite.dev/config/
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// https://vitejs.dev/config/
 export default defineConfig({
-  // Ako koristite @tailwindcss/vite, dodajte ga u niz pluginova:
-  plugins: [react(), tailwindcss()],
-
-  // OVAJ DEO JE NAJVAŽNIJI ZA VAS
+  plugins: [react(), tailwindcss()], // <-- 2. Dodajte plagin ovde
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

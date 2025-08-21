@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Nikola\\Desktop\\soa-project\\api-gateway\\api-gateway.csproj": {}
+    "C:\\Users\\Velja\\Desktop\\soa-project\\api-gateway\\api-gateway.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Nikola\\Desktop\\soa-project\\api-gateway\\api-gateway.csproj": {
+    "C:\\Users\\Velja\\Desktop\\soa-project\\api-gateway\\api-gateway.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Nikola\\Desktop\\soa-project\\api-gateway\\api-gateway.csproj",
+        "projectUniqueName": "C:\\Users\\Velja\\Desktop\\soa-project\\api-gateway\\api-gateway.csproj",
         "projectName": "api-gateway",
-        "projectPath": "C:\\Users\\Nikola\\Desktop\\soa-project\\api-gateway\\api-gateway.csproj",
-        "packagesPath": "C:\\Users\\Nikola\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Nikola\\Desktop\\soa-project\\api-gateway\\obj\\",
+        "projectPath": "C:\\Users\\Velja\\Desktop\\soa-project\\api-gateway\\api-gateway.csproj",
+        "packagesPath": "C:\\Users\\Velja\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Velja\\Desktop\\soa-project\\api-gateway\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Nikola\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Velja\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -78,7 +78,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

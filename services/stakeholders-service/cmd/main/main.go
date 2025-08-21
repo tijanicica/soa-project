@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hudl/fargo"
 	// NOVI IMPORT: Uvozimo naš paket za rad sa bazom
@@ -102,12 +103,20 @@ func main() {
 
 	router := gin.Default()
 
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
 	userHandler := handler.NewUserHandler(dbStore)
 
 	// Definišemo API rute i povezujemo ih sa odgovarajućim funkcijama iz handlera
 	router.POST("/register", userHandler.Register)
 	router.POST("/login", userHandler.Login)
-	
+
 	log.Printf("%s starting on port %d", serviceName, port)
 	router.Run(fmt.Sprintf(":%d", port))
 }

@@ -44,3 +44,20 @@ Thumbs.db
 
 # Environment variables file
 .env
+
+# ==================================
+# Visual Studio / .NET
+# ==================================
+## Visual Studio cache files
+.vs/
+
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+[Bb]in/
+[Oo]bj/

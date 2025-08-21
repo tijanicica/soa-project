@@ -2,8 +2,7 @@
   "Routes": [
     {
       "UpstreamPathTemplate": "/stakeholders/{everything}",
-      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ],
-
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -15,8 +14,7 @@
     },
     {
       "UpstreamPathTemplate": "/blogs/{everything}",
-      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ],
-
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -26,5 +24,24 @@
       ],
       "DownstreamPathTemplate": "/{everything}"
     }
-  ]
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:8000",
+    "CorsOptions": {
+      "AllowedOrigins": [
+        "http://localhost:3000"
+      ],
+      "AllowedMethods": [
+        "POST",
+        "GET",
+        "PUT",
+        "DELETE",
+        "OPTIONS"
+      ],
+      "AllowedHeaders": [
+        "*"
+      ],
+      "AllowCredentials": true
+    }
+  }
 }
