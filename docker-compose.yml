@@ -7,7 +7,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8761" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,7 +28,6 @@ services:
     depends_on:
       eureka-server:
         condition: service_healthy
-
 
   # 3. Stakeholders Servis
   stakeholders-service:
@@ -71,15 +70,15 @@ services:
         condition: service_healthy
 
   # 5. Frontend
-  #frontend:
-  # build:
-  #    context: ./frontend
-  #  ports:
-  #    - "3000:80"
-  #  networks:
-  #    - app-network
-  #  depends_on:
-  #    - api-gateway
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:80"
+    networks:
+      - app-network
+    depends_on:
+      - api-gateway
 
   # 6. Baze Podataka
   stakeholders-db:
@@ -97,7 +96,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       timeout: 20s
       retries: 10
 
@@ -116,7 +115,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       timeout: 20s
       retries: 10
 
