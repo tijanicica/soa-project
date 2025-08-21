@@ -71,15 +71,15 @@ services:
         condition: service_healthy
 
   # 5. Frontend
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "3000:80"
-    networks:
-      - app-network
-    depends_on:
-      - api-gateway
+  #frontend:
+  # build:
+  #    context: ./frontend
+  #  ports:
+  #    - "3000:80"
+  #  networks:
+  #    - app-network
+  #  depends_on:
+  #    - api-gateway
 
   # 6. Baze Podataka
   stakeholders-db:
