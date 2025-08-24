@@ -9,6 +9,9 @@ import { HomePage } from './pages/HomePage';
 import { AdminPage } from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { GuidePage } from './pages/GuidePage';
+import { ProfilePage } from './pages/ProfilePage';
+import { TouristProfilePage } from './pages/TouristProfilePage';
+import { GuideProfilePage } from './pages/GuideProfilePage';
 
 // Pomoćna komponenta za preusmeravanje ulogovanih korisnika sa "/" putanje
 function RedirectIfLoggedIn() {
@@ -48,10 +51,13 @@ function AppContent() {
 
       <Route element={<ProtectedRoute allowedRoles={['guide']} />}>
         <Route path="/guide" element={<GuidePage />} />
+        <Route path="/guide/profile" element={<GuideProfilePage /> } />
+
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['tourist']} />}>
         <Route path="/home" element={<HomePage />} />
+          <Route path="/tourist/profile" element={<TouristProfilePage /> } />
       </Route>
       
       {/* Glavna ruta "/" preusmerava na osnovu uloge ili na login */}
