@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hudl/fargo"
@@ -93,6 +96,28 @@ func main() {
 	}
 	// --- KRAJ NOVOG KODA ZA BAZU ---
 
+	log.Println("Connecting to S3 storage...")
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
+	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
+	s3Client, err := store.NewS3Session(minioEndpoint, minioAccessKey, minioSecretKey)
+	if err != nil {
+		log.Fatalf("Failed to connect to S3: %v", err)
+	}
+	log.Println("S3 connection successful.")
+
+	// Kreiramo Bucket ako ne postoji
+	bucketName := "user-profiles"
+	_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: &bucketName,
+	})
+	if err != nil {
+		// Ignorišemo grešku ako bucket već postoji
+		if !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
+			log.Fatalf("Failed to create S3 bucket: %v", err)
+		}
+	}
+
 	// Ostatak koda za pokretanje servisa
 	portStr := os.Getenv("PORT")
 	port, _ := strconv.Atoi(portStr)
@@ -111,11 +136,24 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	userHandler := handler.NewUserHandler(dbStore)
+	userHandler := handler.NewUserHandler(dbStore, s3Client)
 
-	// Definišemo API rute i povezujemo ih sa odgovarajućim funkcijama iz handlera
 	router.POST("/register", userHandler.Register)
 	router.POST("/login", userHandler.Login)
+
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})
+	})
+	
+	// ZAŠTIĆENE RUTE
+	profileRoutes := router.Group("/profile")
+	profileRoutes.Use(handler.AuthMiddleware())
+	{
+		profileRoutes.GET("", userHandler.GetProfile)
+		profileRoutes.PUT("", userHandler.UpdateProfile)
+		profileRoutes.POST("/upload", userHandler.UploadProfileImage) // NOVA RUTA
+
+	}
 
 	log.Printf("%s starting on port %d", serviceName, port)
 	router.Run(fmt.Sprintf(":%d", port))
