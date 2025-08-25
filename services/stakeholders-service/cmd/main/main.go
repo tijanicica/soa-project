@@ -117,6 +117,18 @@ func main() {
 	router.POST("/register", userHandler.Register)
 	router.POST("/login", userHandler.Login)
 
+	// NOVA RUTA za dohvatanje svih korisnika (za administratora)
+	// U realnoj aplikaciji, ova grupa ruta bi bila zaštićena middleware-om
+	// koji proverava da li je korisnik ulogovan i da li ima ulogu 'administrator'.
+	adminRoutes := router.Group("/api")
+	// adminRoutes.Use(AuthMiddleware("administrator")) // Primer kako bi zaštita rute izgledala
+	{
+		adminRoutes.GET("/users", userHandler.GetAllUsers)
+		// --- NOVA RUTA ---
+		// Koristimo PUT jer modifikujemo postojećeg korisnika.
+		adminRoutes.PUT("/users/:id/block", userHandler.BlockUser)
+	}
+
 	log.Printf("%s starting on port %d", serviceName, port)
 	router.Run(fmt.Sprintf(":%d", port))
 }
