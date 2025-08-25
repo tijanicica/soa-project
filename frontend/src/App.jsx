@@ -9,9 +9,12 @@ import { HomePage } from './pages/HomePage';
 import { AdminPage } from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { GuidePage } from './pages/GuidePage';
-import { ProfilePage } from './pages/ProfilePage';
 import { TouristProfilePage } from './pages/TouristProfilePage';
 import { GuideProfilePage } from './pages/GuideProfilePage';
+import { CreateTourPage } from './pages/CreateTourPage';
+import { EditTourPage } from './pages/EditTourPage'; 
+import { MyToursPage } from './pages/MyToursPage';
+
 
 // Pomoćna komponenta za preusmeravanje ulogovanih korisnika sa "/" putanje
 function RedirectIfLoggedIn() {
@@ -52,7 +55,9 @@ function AppContent() {
       <Route element={<ProtectedRoute allowedRoles={['guide']} />}>
         <Route path="/guide" element={<GuidePage />} />
         <Route path="/guide/profile" element={<GuideProfilePage /> } />
-
+         <Route path="/guide/tours/new" element={<CreateTourPage />} />
+        <Route path="/guide/tours/edit/:tourId" element={<EditTourPage />} />
+        <Route path="/guide/my-tours" element={<MyToursPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['tourist']} />}>
