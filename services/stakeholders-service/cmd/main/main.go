@@ -18,8 +18,7 @@ import (
 	"stakeholders-service/internal/store"
 )
 
-// Funkcija koja registruje servis na Eureku, SADA SA PONOVNIM POKUŠAJIMA
-// OVA FUNKCIJA OSTAJE POTPUNO ISTA
+
 func registerWithEureka(serviceName string, port int) {
 	eurekaURL := os.Getenv("EUREKA_URL")
 	if eurekaURL == "" {
@@ -83,18 +82,16 @@ func main() {
 	}
 	log.Println("Database connection successful.")
 
-	// Inicijalizujemo tabele (kreiramo ih ako ne postoje)
 	if err := dbStore.Init(); err != nil {
 		log.Fatalf("Failed to initialize database tables: %v", err)
 	}
 
-	// Ubacujemo početne podatke (seeding)
+
 	if err := dbStore.Seed(); err != nil {
-		// Koristimo log.Printf umesto Fatalf da aplikacija ne bi pukla ako podaci već postoje
-		// a mi iz nekog razloga dobijemo grešku. U produkciji bi ovo bilo drugačije.
+
 		log.Printf("Warning: Failed to seed database: %v", err)
 	}
-	// --- KRAJ NOVOG KODA ZA BAZU ---
+
 
 	log.Println("Connecting to S3 storage...")
 	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
@@ -140,10 +137,18 @@ func main() {
 
 	router.POST("/register", userHandler.Register)
 	router.POST("/login", userHandler.Login)
-
-	router.GET("/health", func(c *gin.Context) {
+  router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})
 	})
+
+
+	adminRoutes := router.Group("/api")
+	// adminRoutes.Use(AuthMiddleware("administrator")) // Primer kako bi zaštita rute izgledala
+	{
+		adminRoutes.GET("/users", userHandler.GetAllUsers)
+		adminRoutes.PUT("/users/:id/block", userHandler.BlockUser)
+  }
+	
 	
 	// ZAŠTIĆENE RUTE
 	profileRoutes := router.Group("/profile")
