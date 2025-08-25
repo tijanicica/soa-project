@@ -196,7 +196,7 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      interval: 30s
+      interval: 25s
       timeout: 5s
       retries: 10
       start_period: 35s
@@ -217,7 +217,7 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      interval: 30s
+      interval: 25s
       timeout: 5s
       retries: 10
       start_period: 35s
@@ -236,7 +236,7 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
-      interval: 30s
+      interval: 25s
       timeout: 5s
       retries: 5
       start_period: 35s
@@ -255,7 +255,7 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:7474" ]
-      interval: 30s
+      interval: 25s
       timeout: 5s
       retries: 5
       start_period: 35s

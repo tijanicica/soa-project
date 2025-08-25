@@ -17,7 +17,8 @@ import (
 
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/s3" // <-- NOVI IMPORT
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func registerWithEureka(serviceName string, port int) {
@@ -69,17 +70,38 @@ func registerWithEureka(serviceName string, port int) {
 func main() {
 	log.Println("Starting blog-service...")
 
+	// =================================================================
+	// ===== IZMENJENI DEO KODA ZA POVEZIVANJE NA BAZU =====
+	// =================================================================
 	log.Println("Connecting to database...")
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASS")
 	dbHost := os.Getenv("DB_HOST")
 	dbName := os.Getenv("DB_NAME")
 
-	dbStore, err := store.NewStore(dbUser, dbPass, dbHost, dbName)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+	var dbStore *store.Store
+	var err error
+
+	// Petlja koja pokušava da se poveže 5 puta pre nego što odustane
+	for i := 0; i < 5; i++ {
+		dbStore, err = store.NewStore(dbUser, dbPass, dbHost, dbName)
+		if err == nil {
+			// Ako je konekcija uspela, izađi iz petlje
+			break
+		}
+		log.Printf("Failed to connect to database (attempt %d/5). Retrying in 5 seconds...", i+1)
+		time.Sleep(5 * time.Second)
 	}
+
+	// Ako ni posle 5 pokušaja nije uspelo, prekini program
+	if err != nil {
+		log.Fatalf("Could not connect to database after multiple attempts: %v", err)
+	}
+
 	log.Println("Database connection successful.")
+	// =================================================================
+	// ===== KRAJ IZMENJENOG DELA KODA =====
+	// =================================================================
 
 	if err := dbStore.Init(); err != nil {
 		log.Fatalf("Failed to initialize database tables: %v", err)
@@ -99,16 +121,42 @@ func main() {
 	}
 	log.Println("S3 connection successful.")
 
-	// Kreiramo Bucket ako ne postoji
 	bucketName := "blog-images"
-	_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
-		Bucket: &bucketName,
+	_, err = s3Client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName),
 	})
-	if err != nil {
-		// Ignorišemo grešku ako bucket već postoji
-		if !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
+	if err != nil && (strings.Contains(err.Error(), "NotFound") || strings.Contains(err.Error(), "NoSuchBucket")) {
+		log.Printf("Bucket '%s' not found. Creating...", bucketName)
+		_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
+			Bucket: aws.String(bucketName),
+		})
+		if err != nil {
 			log.Fatalf("Failed to create S3 bucket: %v", err)
 		}
+		log.Printf("Bucket '%s' created successfully.", bucketName)
+		policy := fmt.Sprintf(`{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Effect": "Allow",
+					"Principal": "*",
+					"Action": ["s3:GetObject"],
+					"Resource": ["arn:aws:s3:::%s/*"]
+				}
+			]
+		}`, bucketName)
+		_, err = s3Client.PutBucketPolicy(&s3.PutBucketPolicyInput{
+			Bucket: aws.String(bucketName),
+			Policy: aws.String(policy),
+		})
+		if err != nil {
+			log.Fatalf("Failed to set public policy on bucket '%s': %v", bucketName, err)
+		}
+		log.Printf("Public policy set for bucket '%s'.", bucketName)
+	} else if err != nil {
+		log.Fatalf("Error checking for S3 bucket: %v", err)
+	} else {
+		log.Printf("Bucket '%s' already exists.", bucketName)
 	}
 
 	portStr := os.Getenv("PORT")
@@ -137,12 +185,9 @@ func main() {
 	authRoutes.Use(handler.AuthMiddleware())
 	{
 		authRoutes.GET("/blogs", blogHandler.GetAllBlogs)
-
 		authRoutes.POST("/blogs", blogHandler.CreateBlog)
-
 		authRoutes.POST("/blogs/:blogId/comments", blogHandler.AddComment)
 		authRoutes.GET("/blogs/:blogId/comments", blogHandler.GetAllCommentsForBlog)
-
 		authRoutes.POST("/blogs/:blogId/like", blogHandler.ToggleLike)
 	}
 
