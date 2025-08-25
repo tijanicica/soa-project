@@ -23,6 +23,31 @@
         }
       ],
       "DownstreamPathTemplate": "/{everything}"
+    },
+
+    {
+      "UpstreamPathTemplate": "/tours/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "tour-service",
+          "Port": 8003 
+        }
+      ],
+      "DownstreamPathTemplate": "/{everything}"
+    },
+    {
+      "UpstreamPathTemplate": "/followers/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "followers-service", 
+          "Port": 8004 
+        }
+      ],
+      "DownstreamPathTemplate": "/{everything}"
     }
   ],
   "GlobalConfiguration": {

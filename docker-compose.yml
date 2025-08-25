@@ -32,6 +32,10 @@ services:
         condition: service_healthy
       blog-service:
         condition: service_healthy
+      tour-service:
+        condition: service_healthy
+      followers-service: 
+        condition: service_healthy
 
   minio:
     image: minio/minio:latest
@@ -108,6 +112,54 @@ services:
         condition: service_started
       eureka-server:
         condition: service_healthy
+    
+  tour-service:
+    build:
+      context: ./services/tour-service/tour-service
+    environment:
+      - PORT=8003
+      - SERVICE_NAME=TOUR-SERVICE
+      - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
+      - ASPNETCORE_URLS=http://+:8003
+      - ConnectionStrings__TourDatabase=mongodb://user:password@tour-db:27017
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      tour-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+
+  followers-service:
+    build:
+      context: ./services/followers-service/followers-service
+    environment:
+      - PORT=8004
+      - SERVICE_NAME=FOLLOWERS-SERVICE
+      - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
+      - ASPNETCORE_URLS=http://+:8004
+      - Neo4j__Uri=bolt://followers-db:7687
+      - Neo4j__Username=neo4j
+      - Neo4j__Password=password
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      followers-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
 
   # 5. Frontend
   frontend:
@@ -158,6 +210,42 @@ services:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       timeout: 20s
       retries: 10
+   
+  tour-db: # MongoDB za Ture
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  followers-db: # Neo4j za Praćenja
+    image: neo4j:latest
+    ports:
+      - "7474:7474" # Web interfejs
+      - "7687:7687" # Bolt port za konekciju iz koda
+    environment:
+      NEO4J_AUTH: neo4j/password # user/password
+    volumes:
+      - neo4j-data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   app-network:
@@ -167,3 +255,5 @@ volumes:
   stakeholders-data:
   blog-data:
   minio-data:
+  mongo-data: 
+  neo4j-data: 
