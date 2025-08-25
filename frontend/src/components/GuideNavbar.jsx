@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "../hooks/useAuth";
-import { User, LogOut, Compass, PlusCircle, LayoutDashboard } from "lucide-react";
+import { User, LogOut, Compass, PlusCircle, LayoutDashboard, List } from "lucide-react";
 
 export function GuideNavbar() {
   const { logout } = useAuth();
@@ -26,6 +26,10 @@ export function GuideNavbar() {
         <Link to="/guide/tours/new" className="text-muted-foreground transition-colors hover:text-foreground">
           <PlusCircle className="h-4 w-4 mr-2 inline-block"/>
           Create Tour
+        </Link>
+         <Link to="/guide/my-tours" className="text-muted-foreground transition-colors hover:text-foreground">
+          <List className="h-4 w-4 mr-2 inline-block"/>
+          My Tours
         </Link>
         <div className="ml-auto flex items-center gap-2">
            <Button onClick={() => navigate('/guide/profile')} variant="ghost" size="icon" className="rounded-full">

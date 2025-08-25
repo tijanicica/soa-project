@@ -13,6 +13,18 @@
       "DownstreamPathTemplate": "/{everything}"
     },
     {
+      "UpstreamPathTemplate": "/tours/files/upload",
+      "UpstreamHttpMethod": [ "POST", "OPTIONS" ], 
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "tour-service",
+          "Port": 8003
+        }
+      ],
+      "DownstreamPathTemplate": "/files/upload"
+    },
+    {
       "UpstreamPathTemplate": "/blogs/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "DownstreamScheme": "http",
@@ -32,10 +44,10 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "tour-service",
-          "Port": 8003 
+          "Port": 8003
         }
       ],
-      "DownstreamPathTemplate": "/{everything}"
+      "DownstreamPathTemplate": "/tours/{everything}"
     },
     {
       "UpstreamPathTemplate": "/followers/{everything}",
@@ -43,8 +55,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "followers-service", 
-          "Port": 8004 
+          "Host": "followers-service",
+          "Port": 8004
         }
       ],
       "DownstreamPathTemplate": "/{everything}"
