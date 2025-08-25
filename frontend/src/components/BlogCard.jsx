@@ -16,20 +16,38 @@ import {
 import { Heart, MessageSquare, Send, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "date-fns";
-// Putanja je ispravljena na osnovu prethodne greške
-import { getCommentsForBlog } from "../services/BlogApi"; 
+import { getCommentsForBlog } from "../services/BlogApi";
 
-// Mala pomoćna komponenta za prikazivanje pojedinačnog komentara
+// New Carousel imports
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+
+// --- NEW HELPER COMPONENT: Avatar ---
+// A simple avatar to show the first letter of the author's name (or just 'U' for 'User').
+const Avatar = ({ authorId }) => (
+  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 flex-shrink-0">
+    U
+  </div>
+);
+
+// --- RESTYLED COMPONENT: Comment ---
 const Comment = ({ comment }) => (
-  <div className="text-sm p-2 bg-background rounded-lg mb-2">
-    {/* ===== IZMENA #1: Prikazujemo ID autora komentara ===== */}
-    <p className="font-semibold">Korisnik {comment.authorId}</p>
-    <p>{comment.text}</p>
-    
-    {/* ===== IZMENA #2: Koristimo `creationTime` za datum komentara ===== */}
-    <p className="text-xs text-muted-foreground mt-1">
-      {formatDistanceToNow(new Date(comment.creationTime), { addSuffix: true })}
-    </p>
+  <div className="flex items-start gap-3 py-3 border-b border-border last:border-b-0">
+    <Avatar authorId={comment.authorId} />
+    <div className="flex-1">
+      <div className="flex items-center gap-2 text-sm">
+        <p className="font-semibold">User {comment.authorId}</p>
+        <p className="text-xs text-muted-foreground">
+          • {formatDistanceToNow(new Date(comment.creationTime), { addSuffix: true })}
+        </p>
+      </div>
+      <p className="text-muted-foreground mt-1">{comment.text}</p>
+    </div>
   </div>
 );
 
@@ -41,20 +59,19 @@ export function BlogCard({ blog, onLikeToggle, onAddComment }) {
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [areCommentsVisible, setAreCommentsVisible] = useState(false);
 
+  // Logic functions remain the same
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
     setIsCommenting(true);
     try {
-        const newComment = await onAddComment(blog.id, commentText);
-        if (newComment) {
-            // Kada backend ne vraća username, moramo ručno da dodamo authorId
-            // na osnovu onoga ko je ulogovan, ali za sada ovo radi.
-            setComments(prevComments => [newComment, ...prevComments]);
-        }
+      const newComment = await onAddComment(blog.id, commentText);
+      if (newComment) {
+        setComments(prevComments => [newComment, ...prevComments]);
+      }
     } finally {
-        setCommentText("");
-        setIsCommenting(false);
+      setCommentText("");
+      setIsCommenting(false);
     }
   };
 
@@ -65,28 +82,46 @@ export function BlogCard({ blog, onLikeToggle, onAddComment }) {
       const response = await getCommentsForBlog(blog.id);
       setComments(response.data || []);
     } catch (error) {
-      console.error("Greška pri preuzimanju komentara:", error);
+      console.error("Error fetching comments:", error);
     } finally {
       setIsLoadingComments(false);
     }
   };
 
-
   return (
-    <Card className="bg-card">
-      <CardHeader>
+    <Card className="bg-card overflow-hidden">
+      <CardHeader className="pb-4">
+        {/* Carousel for images */}
         {blog.imageUrls && blog.imageUrls.length > 0 && (
-          <img
-            src={blog.imageUrls[0]}
-            alt={blog.title}
-            className="w-full h-64 object-cover rounded-t-lg mb-4"
-          />
+          <div className="relative mb-4 -mx-6 -mt-6">
+            {blog.imageUrls.length > 1 ? (
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {blog.imageUrls.map((url, index) => (
+                    <CarouselItem key={index}>
+                      <img
+                        src={url}
+                        alt={`${blog.title} - image ${index + 1}`}
+                        className="w-full h-64 object-cover"
+                      />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
+                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
+              </Carousel>
+            ) : (
+              <img
+                src={blog.imageUrls[0]}
+                alt={blog.title}
+                className="w-full h-64 object-cover"
+              />
+            )}
+          </div>
         )}
         <CardTitle className="text-2xl font-bold">{blog.title}</CardTitle>
-
-        {/* ===== IZMENA #3: Prikazujemo ID autora bloga ===== */}
         <p className="text-sm text-muted-foreground">
-          Postavio Korisnik {blog.authorId} •{" "}
+          Posted by User {blog.authorId} •{" "}
           {formatDistanceToNow(new Date(blog.creationDate), {
             addSuffix: true,
           })}
@@ -97,67 +132,70 @@ export function BlogCard({ blog, onLikeToggle, onAddComment }) {
           <ReactMarkdown>{blog.descriptionMarkdown}</ReactMarkdown>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <div className="flex gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onLikeToggle(blog.id)}
-            className="flex items-center gap-2"
-          >
-            <Heart className="h-4 w-4" />
-            <span>{blog.stats.likesCount}</span>
-          </Button>
-          <Collapsible onOpenChange={setAreCommentsVisible}>
+      {/* --- NEW CARD FOOTER AND COMMENTS LAYOUT --- */}
+      <CardFooter className="flex flex-col items-start gap-4">
+        <Collapsible onOpenChange={setAreCommentsVisible} className="w-full">
+          {/* Action buttons are now direct children */}
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onLikeToggle(blog.id)}
+              className="flex items-center gap-2"
+            >
+              <Heart className="h-4 w-4" />
+              <span>{blog.stats.likesCount}</span>
+            </Button>
             <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
                 className="flex items-center gap-2"
                 onClick={() => {
-                  if (!areCommentsVisible) {
-                    fetchComments();
-                  }
+                  if (!areCommentsVisible) fetchComments();
                 }}
               >
                 <MessageSquare className="h-4 w-4" />
                 <span>{blog.stats.commentsCount}</span>
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="mt-4 -ml-20 w-full max-w-md">
-              <div className="p-4 bg-muted rounded-lg">
-                <form
-                  onSubmit={handleCommentSubmit}
-                  className="flex gap-2 w-full mb-4"
-                >
-                  <Textarea
-                    placeholder="Napišite komentar..."
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    className="resize-none"
-                  />
-                  <Button type="submit" size="icon" disabled={isCommenting}>
-                    {isCommenting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  </Button>
-                </form>
+          </div>
+          
+          {/* Collapsible content now spans full width naturally */}
+          <CollapsibleContent className="w-full pt-4">
+            <div className="space-y-4 rounded-lg bg-muted p-4">
+              <h4 className="font-semibold text-base">Comments</h4>
+              {/* Comment form */}
+              <form onSubmit={handleCommentSubmit} className="flex gap-2 w-full">
+                <Textarea
+                  placeholder="Write a comment..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  className="resize-none"
+                  rows={1}
+                />
+                <Button type="submit" size="icon" disabled={isCommenting}>
+                  {isCommenting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </form>
 
-                <div className="space-y-2">
-                    {isLoadingComments ? (
-                        <div className="flex justify-center items-center p-4">
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                        </div>
-                    ) : comments.length > 0 ? (
-                        comments.map((comment) => (
-                            <Comment key={comment.id} comment={comment} />
-                        ))
-                    ) : (
-                        <p className="text-sm text-center text-muted-foreground">Nema komentara.</p>
-                    )}
-                </div>
+              {/* Comments list */}
+              <div className="space-y-2">
+                {isLoadingComments ? (
+                  <div className="flex justify-center items-center p-4">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : comments.length > 0 ? (
+                  comments.map((comment) => (
+                    <Comment key={comment.id} comment={comment} />
+                  ))
+                ) : (
+                  <p className="text-sm text-center text-muted-foreground py-4">Be the first to comment!</p>
+                )}
               </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardFooter>
     </Card>
   );

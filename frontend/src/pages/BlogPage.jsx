@@ -10,6 +10,8 @@ export function BlogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  
+
   const fetchBlogs = async () => {
     try {
       setIsLoading(true);
@@ -45,25 +47,21 @@ export function BlogPage() {
     }
   };
 
-  const handleAddComment = async (blogId, commentText) => {
+ const handleAddComment = async (blogId, commentData) => {
     try {
-      await blogService.addComment(blogId, commentText);
-      // Jednostavno inkrementiramo broj komentara na UI
+      const response = await blogService.addComment(blogId, commentData);
+      
       setBlogs(
         blogs.map((blog) =>
           blog.id === blogId
-            ? {
-                ...blog,
-                stats: {
-                  ...blog.stats,
-                  commentsCount: blog.stats.commentsCount + 1,
-                },
-              }
+            ? { ...blog, stats: { ...blog.stats, commentsCount: blog.stats.commentsCount + 1 } }
             : blog
         )
       );
+      return response.data; 
     } catch (error) {
       console.error("Failed to add comment:", error);
+      throw error; 
     }
   };
 
