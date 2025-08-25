@@ -1,5 +1,9 @@
 package model
 
+import (
+	"database/sql"
+) // NOVI IMPORT
+
 // User predstavlja korisnički nalog u sistemu.
 // Funkcionalnost #1.
 type User struct {
@@ -16,11 +20,11 @@ type User struct {
 type Profile struct {
 	// ID polje nije strogo neophodno u modelu ako je 1-na-1 veza sa User-om,
 	// ali je dobra praksa imati ga radi konzistentnosti.
-	ID              int64  `json:"id"`
-	UserID          int64  `json:"userId"`
-	FirstName       string `json:"firstName"`
-	LastName        string `json:"lastName"`
-	ProfileImageURL string `json:"profileImageUrl"`
-	Biography       string `json:"biography"`
-	Motto           string `json:"motto"`
+	ID              int64          `json:"id"`
+	UserID          int64          `json:"userId"`
+	FirstName       sql.NullString `json:"firstName"`       // Može biti NULL
+	LastName        sql.NullString `json:"lastName"`        // Može biti NULL
+	ProfileImageURL sql.NullString `json:"profileImageUrl"` // Može biti NULL
+	Biography       sql.NullString `json:"biography"`       // Može biti NULL
+	Motto           sql.NullString `json:"motto"`           // Može biti NULL
 }

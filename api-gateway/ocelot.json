@@ -13,6 +13,18 @@
       "DownstreamPathTemplate": "/{everything}"
     },
     {
+      "UpstreamPathTemplate": "/tours/files/upload",
+      "UpstreamHttpMethod": [ "POST", "OPTIONS" ], 
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "tour-service",
+          "Port": 8003
+        }
+      ],
+      "DownstreamPathTemplate": "/files/upload"
+    },
+    {
       "UpstreamPathTemplate": "/blogs/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "DownstreamScheme": "http",
@@ -20,6 +32,31 @@
         {
           "Host": "blog-service",
           "Port": 8002
+        }
+      ],
+      "DownstreamPathTemplate": "/{everything}"
+    },
+
+    {
+      "UpstreamPathTemplate": "/tours/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "tour-service",
+          "Port": 8003
+        }
+      ],
+      "DownstreamPathTemplate": "/tours/{everything}"
+    },
+    {
+      "UpstreamPathTemplate": "/followers/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "followers-service",
+          "Port": 8004
         }
       ],
       "DownstreamPathTemplate": "/{everything}"

@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hudl/fargo"
@@ -15,8 +18,7 @@ import (
 	"stakeholders-service/internal/store"
 )
 
-// Funkcija koja registruje servis na Eureku, SADA SA PONOVNIM POKUŠAJIMA
-// OVA FUNKCIJA OSTAJE POTPUNO ISTA
+
 func registerWithEureka(serviceName string, port int) {
 	eurekaURL := os.Getenv("EUREKA_URL")
 	if eurekaURL == "" {
@@ -80,18 +82,38 @@ func main() {
 	}
 	log.Println("Database connection successful.")
 
-	// Inicijalizujemo tabele (kreiramo ih ako ne postoje)
 	if err := dbStore.Init(); err != nil {
 		log.Fatalf("Failed to initialize database tables: %v", err)
 	}
 
-	// Ubacujemo početne podatke (seeding)
+
 	if err := dbStore.Seed(); err != nil {
-		// Koristimo log.Printf umesto Fatalf da aplikacija ne bi pukla ako podaci već postoje
-		// a mi iz nekog razloga dobijemo grešku. U produkciji bi ovo bilo drugačije.
+
 		log.Printf("Warning: Failed to seed database: %v", err)
 	}
-	// --- KRAJ NOVOG KODA ZA BAZU ---
+
+
+	log.Println("Connecting to S3 storage...")
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
+	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
+	s3Client, err := store.NewS3Session(minioEndpoint, minioAccessKey, minioSecretKey)
+	if err != nil {
+		log.Fatalf("Failed to connect to S3: %v", err)
+	}
+	log.Println("S3 connection successful.")
+
+	// Kreiramo Bucket ako ne postoji
+	bucketName := "user-profiles"
+	_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: &bucketName,
+	})
+	if err != nil {
+		// Ignorišemo grešku ako bucket već postoji
+		if !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
+			log.Fatalf("Failed to create S3 bucket: %v", err)
+		}
+	}
 
 	// Ostatak koda za pokretanje servisa
 	portStr := os.Getenv("PORT")
@@ -111,22 +133,31 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	userHandler := handler.NewUserHandler(dbStore)
+	userHandler := handler.NewUserHandler(dbStore, s3Client)
 
-	// Definišemo API rute i povezujemo ih sa odgovarajućim funkcijama iz handlera
 	router.POST("/register", userHandler.Register)
 	router.POST("/login", userHandler.Login)
+  router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})
+	})
 
-	// NOVA RUTA za dohvatanje svih korisnika (za administratora)
-	// U realnoj aplikaciji, ova grupa ruta bi bila zaštićena middleware-om
-	// koji proverava da li je korisnik ulogovan i da li ima ulogu 'administrator'.
+
 	adminRoutes := router.Group("/api")
 	// adminRoutes.Use(AuthMiddleware("administrator")) // Primer kako bi zaštita rute izgledala
 	{
 		adminRoutes.GET("/users", userHandler.GetAllUsers)
-		// --- NOVA RUTA ---
-		// Koristimo PUT jer modifikujemo postojećeg korisnika.
 		adminRoutes.PUT("/users/:id/block", userHandler.BlockUser)
+  }
+	
+	
+	// ZAŠTIĆENE RUTE
+	profileRoutes := router.Group("/profile")
+	profileRoutes.Use(handler.AuthMiddleware())
+	{
+		profileRoutes.GET("", userHandler.GetProfile)
+		profileRoutes.PUT("", userHandler.UpdateProfile)
+		profileRoutes.POST("/upload", userHandler.UploadProfileImage) // NOVA RUTA
+
 	}
 
 	log.Printf("%s starting on port %d", serviceName, port)

@@ -1,58 +1,181 @@
 package handler
 
 import (
+
+	"fmt"
+	"log"
+
 	"net/http"
 	"os"
+	"path/filepath"
 	"stakeholders-service/internal/model"
 	"stakeholders-service/internal/store"
 	"strconv"
+	"strings"
 	"time"
+
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// AppClaims je naša custom struktura za podatke unutar JWT tokena.
-// Ona "ugnježđuje" (embeds) standardne RegisteredClaims i dodaje naša polja.
+
 type AppClaims struct {
 	Role string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-// Definišemo ključ za potpisivanje tokena. U pravoj aplikaciji, ovo bi trebalo da bude
-// tajna koja se čita iz environment varijabli, a ne da je hardkodovana.
+
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
-// UserHandler sadrži zavisnosti za handlere, kao što je konekcija ka bazi.
 type UserHandler struct {
-	store *store.Store
+	store    *store.Store
+	s3Client *s3.S3
 }
 
-// NewUserHandler je konstruktor za UserHandler
-func NewUserHandler(store *store.Store) *UserHandler {
-	return &UserHandler{store: store}
+func NewUserHandler(store *store.Store, s3Client *s3.S3) *UserHandler {
+	return &UserHandler{store: store, s3Client: s3Client}
 }
 
-// Register je handler za registrovanje novih korisnika
+func (h *UserHandler) UploadProfileImage(c *gin.Context) {
+	// Sada nam STVARNO treba userID
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID, _ := userIDValue.(int64)
+
+	file, err := c.FormFile("profileImage")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image not provided"})
+		return
+	}
+	extension := filepath.Ext(file.Filename)
+	uniqueFileName := fmt.Sprintf("user-%d-%d%s", userID, time.Now().Unix(), extension)
+	bucketName := "user-profiles"
+
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not open file"})
+		return
+	}
+	defer src.Close()
+
+	// Upload na MinIO/S3
+	_, err = h.s3Client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String(bucketName),
+		Key:         aws.String(uniqueFileName),
+		Body:        src,
+		ACL:         aws.String("public-read"), // Čini sliku javno dostupnom
+		ContentType: aws.String(file.Header.Get("Content-Type")),
+	})
+	if err != nil {
+		log.Printf("Failed to upload to S3: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not upload image"})
+		return
+	}
+
+	// Konstruišemo URL do upravo upload-ovane slike
+	imageUrl := fmt.Sprintf("http://localhost:9000/%s/%s", bucketName, uniqueFileName)
+
+	c.JSON(http.StatusOK, gin.H{"imageUrl": imageUrl})
+}
+
+// AuthMiddleware proverava validnost JWT tokena i postavlja userID u kontekst.
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+			c.Abort()
+			return
+		}
+
+		// Token obično dolazi u formatu "Bearer <token>"
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Bearer token not found"})
+			c.Abort()
+			return
+		}
+
+		claims := &AppClaims{}
+
+		// ParseWithClaims je sigurna funkcija. Ona proverava:
+		// 1. Da li je token u ispravnom formatu.
+		// 2. Da li je potpis (signature) validan, koristeći naš jwtKey.
+		// 3. Da li je token istekao (proverava 'exp' claim).
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
+
+		userID, err := strconv.ParseInt(claims.Subject, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})
+			c.Abort()
+			return
+		}
+
+		// Ako je sve prošlo kako treba, postavi userID i nastavi dalje.
+		c.Set("userID", userID)
+		c.Next()
+	}
+}
+
+// Register je handler za registrovanje novih korisnika SA ISPRAVNOM VALIDACIJOM
 func (h *UserHandler) Register(c *gin.Context) {
 	var req model.RegisterRequest
-	// Parsiraj i validiraj JSON iz zahteva
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Validacija uloge
+	// --- POČETAK NOVE VALIDACIJE ---
+	// 1. Proveri da li korisničko ime već postoji
+	existingUser, err := h.store.GetUserByUsername(req.Username)
+	if err != nil {
+		// Prava greška sa bazom
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking username"})
+		return
+	}
+	if existingUser != nil {
+		// Korisnik sa tim imenom već postoji
+		c.JSON(http.StatusConflict, gin.H{"error": "Username is already taken"})
+		return
+	}
+
+	// 2. Proveri da li email već postoji
+	existingUser, err = h.store.GetUserByEmail(req.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking email"})
+		return
+	}
+	if existingUser != nil {
+		// Korisnik sa tim email-om već postoji
+		c.JSON(http.StatusConflict, gin.H{"error": "Email is already registered"})
+		return
+	}
+
+
+	// Validacija uloge (ostaje ista)
 	switch req.Role {
 	case "guide", "tourist":
-		// Uloga je ispravna, nastavi dalje
+		// OK
 	case "administrator":
-		// Eksplicitno zabranjujemo registraciju admina preko API-ja
 		c.JSON(http.StatusForbidden, gin.H{"error": "Administrator role cannot be assigned through registration."})
 		return
 	default:
-		// Bilo koja druga vrednost je nevalidna
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role specified. Allowed roles are 'guide' or 'tourist'."})
 		return
 	}
@@ -64,8 +187,8 @@ func (h *UserHandler) Register(c *gin.Context) {
 		Role:     req.Role,
 	}
 
+	// Sada znamo da je bezbedno kreirati korisnika
 	if err := h.store.CreateUser(user); err != nil {
-		// Ovde bi trebalo proveriti da li je greška "duplicate entry" i vratiti lepšu poruku
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
@@ -123,7 +246,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, model.LoginResponse{Token: tokenString})
 }
 
-// GetAllUsers je handler za dohvatanje svih korisnika.
+
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	// U realnoj aplikaciji, ovde bi trebalo dodati proveru da li je ulogovani korisnik administrator.
 	// To se obično radi unutar middleware-a koji proverava JWT token.
@@ -137,8 +260,7 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
-// --- UNAPREĐENA FUNKCIJA ---
-// BlockUser je handler za blokiranje korisnika.
+
 func (h *UserHandler) BlockUser(c *gin.Context) {
 	// 1. Dohvatamo ID korisnika iz URL-a.
 	idStr := c.Param("id")
@@ -172,4 +294,59 @@ func (h *UserHandler) BlockUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User blocked successfully"})
+}
+
+
+// GetProfile je handler za dobijanje profila ulogovanog korisnika
+func (h *UserHandler) GetProfile(c *gin.Context) {
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
+		return
+	}
+
+	// Sigurna provera tipa (type assertion)
+	userID, ok := userIDValue.(int64)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User ID in context is not of expected type"})
+		return
+	}
+
+
+	profile, err := h.store.GetProfileByUserID(userID)
+	if err != nil {
+
+		log.Printf("ERROR retrieving profile for user ID %d: %v", userID, err)
+	
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve profile"})
+		return
+	}
+
+	if profile == nil {
+		c.JSON(http.StatusOK, nil)
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+
+
+func (h *UserHandler) UpdateProfile(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var req model.Profile
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	req.UserID = userID.(int64)
+
+	if err := h.store.UpdateProfile(&req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
+
 }

@@ -8,9 +8,7 @@ const apiClient = axios.create({
   baseURL: API_URL,
 });
 
-// --- KLJUČNI DEO: Axios Interceptor ---
-// Presreće svaki odlazni zahtev i dodaje mu 'Authorization' zaglavlje
-// ako token postoji u localStorage pod ključem 'jwtToken'.
+
 apiClient.interceptors.request.use(
 (config) => {
 const token = localStorage.getItem('jwtToken'); // Čita ispravan ključ
@@ -25,13 +23,9 @@ return Promise.reject(error);
 }
 );
 
-export const loginUser = async (credentials) => {
-  
-  // --- DODAJTE OVAJ CONSOLE.LOG ---
-  console.log("Podaci koji se šalju na API:", credentials);
-  console.log("Tip podataka:", typeof credentials);
-  // --------------------------------
 
+
+export const loginUser = async (credentials) => {
   const response = await apiClient.post('/login', credentials);
   return response.data;
 };
@@ -42,16 +36,36 @@ export const registerUser = async (userData) => {
     return response.data;
 };
 
-// --- NOVA FUNKCIJA ZA ADMINA ---
-// Dohvata sve korisnike. Token se dodaje automatski pomoću interceptora.
+
 export const getAllUsers = async () => {
 const response = await apiClient.get('/api/users');
 return response.data;
 };
 
-// Funkcija za blokiranje korisnika.
-// Token se dodaje automatski pomoću interceptora.
+
 export const blockUser = async (userId) => {
     const response = await apiClient.put(`/api/users/${userId}/block`);
     return response.data;
 };
+
+
+export const getUserProfile = () => {
+  return apiClient.get('/profile');
+};
+
+export const updateUserProfile = (profileData) => {
+  return apiClient.put('/profile', profileData);
+};
+
+
+export const uploadProfileImage = (file) => {
+  const formData = new FormData();
+  formData.append('profileImage', file);
+
+  return apiClient.post('/profile/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
