@@ -34,14 +34,14 @@ services:
         condition: service_healthy
       tour-service:
         condition: service_healthy
-      followers-service: 
+      followers-service:
         condition: service_healthy
 
   minio:
     image: minio/minio:latest
     ports:
-      - "9000:9000"  # API port
-      - "9001:9001"  # Port za web interfejs
+      - "9000:9000" # API port
+      - "9001:9001" # Port za web interfejs
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -51,7 +51,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -71,17 +71,18 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - JWT_KEY=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8001/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8001/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     depends_on:
       stakeholders-db:
-        condition: service_started
+        condition: service_healthy
       eureka-server:
         condition: service_healthy
       minio:
@@ -99,20 +100,26 @@ services:
       - DB_PASS=password
       - DB_HOST=blog-db
       - DB_NAME=blog_db
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - JWT_KEY=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8002/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8002/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     depends_on:
       blog-db:
-        condition: service_started
+        condition: service_healthy
       eureka-server:
         condition: service_healthy
-    
+      minio:
+        condition: service_healthy
+
   tour-service:
     build:
       context: ./services/tour-service/tour-service
@@ -125,7 +132,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8003/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -150,7 +157,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8004/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -210,8 +217,9 @@ services:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       timeout: 20s
       retries: 10
-   
-  tour-db: # MongoDB za Ture
+
+  tour-db:
+    # MongoDB za Ture
     image: mongo:latest
     ports:
       - "27017:27017"
@@ -223,13 +231,14 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
-  followers-db: # Neo4j za Praćenja
+  followers-db:
+    # Neo4j za Praćenja
     image: neo4j:latest
     ports:
       - "7474:7474" # Web interfejs
@@ -241,7 +250,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7474"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:7474" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -255,5 +264,5 @@ volumes:
   stakeholders-data:
   blog-data:
   minio-data:
-  mongo-data: 
-  neo4j-data: 
+  mongo-data:
+  neo4j-data:

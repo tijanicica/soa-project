@@ -8,7 +8,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('jwtToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -17,5 +17,16 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Primer funkcije koju ćeš kasnije dodati
-// export const createBlog = (blogData) => apiClient.post('/blogs', blogData);
+export const getAllBlogs = () => apiClient.get('/blogs');
+
+export const createBlog = (formData) => {
+  return apiClient.post('/blogs', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+export const toggleLike = (blogId) => apiClient.post(`/blogs/${blogId}/like`);
+
+export const addComment = (blogId, text) => apiClient.post(`/blogs/${blogId}/comments`, { text });

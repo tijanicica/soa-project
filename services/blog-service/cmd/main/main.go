@@ -8,15 +8,19 @@ import (
 	"strconv"
 	"time"
 
-	// NOVI IMPORT: Uvozimo store paket iz blog-service-a
+	"blog-service/internal/handler"
 	"blog-service/internal/store"
-	"github.com/gin-contrib/cors" // <-- 1. NOVI IMPORT
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hudl/fargo"
+
+	"github.com/aws/aws-sdk-go/service/s3" // <-- NOVI IMPORT
+	"strings"
 )
 
-// registerWithEureka funkcija ostaje POTPUNO ISTA kao u stakeholders-service
 func registerWithEureka(serviceName string, port int) {
+
 	eurekaURL := os.Getenv("EUREKA_URL")
 	if eurekaURL == "" {
 		log.Fatal("EUREKA_URL environment variable not set")
@@ -64,7 +68,6 @@ func registerWithEureka(serviceName string, port int) {
 func main() {
 	log.Println("Starting blog-service...")
 
-	// --- POČETAK KODA ZA BAZU ---
 	log.Println("Connecting to database...")
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASS")
@@ -84,7 +87,28 @@ func main() {
 	if err := dbStore.Seed(); err != nil {
 		log.Printf("Warning: Failed to seed database: %v", err)
 	}
-	// --- KRAJ KODA ZA BAZU ---
+
+	log.Println("Connecting to S3 storage...")
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
+	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
+	s3Client, err := store.NewS3Session(minioEndpoint, minioAccessKey, minioSecretKey)
+	if err != nil {
+		log.Fatalf("Failed to connect to S3: %v", err)
+	}
+	log.Println("S3 connection successful.")
+
+	// Kreiramo Bucket ako ne postoji
+	bucketName := "blog-images"
+	_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: &bucketName,
+	})
+	if err != nil {
+		// Ignorišemo grešku ako bucket već postoji
+		if !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
+			log.Fatalf("Failed to create S3 bucket: %v", err)
+		}
+	}
 
 	portStr := os.Getenv("PORT")
 	port, _ := strconv.Atoi(portStr)
@@ -106,13 +130,21 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})
 	})
 
-	// OVDE ĆETE KASNIJE DODAVATI PRAVE RUTE ZA BLOG
-	// npr. router.POST("/blogs", handler.CreateBlog)
-	// Primer:
-	// blogHandler := handler.NewBlogHandler(dbStore)
-	// router.POST("/blogs", blogHandler.CreateBlog)
-	// router.POST("/blogs/:id/comments", blogHandler.AddComment)
+	blogHandler := handler.NewBlogHandler(dbStore, s3Client)
+
+	authRoutes := router.Group("/")
+	authRoutes.Use(handler.AuthMiddleware())
+	{
+		authRoutes.GET("/blogs", blogHandler.GetAllBlogs)
+
+		authRoutes.POST("/blogs", blogHandler.CreateBlog)
+
+		authRoutes.POST("/blogs/:blogId/comments", blogHandler.AddComment)
+
+		authRoutes.POST("/blogs/:blogId/like", blogHandler.ToggleLike)
+	}
 
 	log.Printf("%s starting on port %d", serviceName, port)
 	router.Run(fmt.Sprintf(":%d", port))
+
 }
