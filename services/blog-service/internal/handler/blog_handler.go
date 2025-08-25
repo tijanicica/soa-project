@@ -232,3 +232,24 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 
 	c.JSON(http.StatusOK, blogs)
 }
+
+func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
+	blogID, err := strconv.ParseInt(c.Param("blogId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid blog ID"})
+		return
+	}
+
+	comments, err := h.store.GetCommentsForBlog(blogID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comments"})
+		return
+	}
+
+	// Osiguravamo da se vrati prazan niz `[]` umesto `null` ako nema komentara
+	if comments == nil {
+		comments = []*model.Comment{}
+	}
+
+	c.JSON(http.StatusOK, comments)
+}

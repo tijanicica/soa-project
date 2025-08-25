@@ -15,8 +15,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hudl/fargo"
 
-	"github.com/aws/aws-sdk-go/service/s3" // <-- NOVI IMPORT
 	"strings"
+
+	"github.com/aws/aws-sdk-go/service/s3" // <-- NOVI IMPORT
 )
 
 func registerWithEureka(serviceName string, port int) {
@@ -140,6 +141,7 @@ func main() {
 		authRoutes.POST("/blogs", blogHandler.CreateBlog)
 
 		authRoutes.POST("/blogs/:blogId/comments", blogHandler.AddComment)
+		authRoutes.GET("/blogs/:blogId/comments", blogHandler.GetAllCommentsForBlog)
 
 		authRoutes.POST("/blogs/:blogId/like", blogHandler.ToggleLike)
 	}

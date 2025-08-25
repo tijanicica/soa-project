@@ -167,3 +167,55 @@ func (s *Store) GetAllBlogs() ([]*model.BlogWithStats, error) {
 	}
 	return blogs, nil
 }
+
+// U vašem store.go fajlu
+// U vašem store.go fajlu
+
+func (s *Store) GetCommentsForBlog(blogID int64) ([]*model.Comment, error) {
+	// Upit je vraćen na originalnu verziju i sada preuzima podatke samo iz 'comments' tabele.
+	// Redosled je DESC da bi najnoviji komentari bili prvi.
+	rows, err := s.db.Query(`
+		SELECT 
+			id, 
+			blog_id, 
+			author_id, 
+			text, 
+			creation_time, 
+			last_modified_time 
+		FROM 
+			comments 
+		WHERE 
+			blog_id = ? 
+		ORDER BY 
+			creation_time DESC
+	`, blogID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []*model.Comment
+	for rows.Next() {
+		comment := &model.Comment{}
+		// Skeniranje je takođe vraćeno na original, bez polja AuthorUsername.
+		err := rows.Scan(
+			&comment.ID,
+			&comment.BlogID,
+			&comment.AuthorID,
+			&comment.Text,
+			&comment.CreationTime,
+			&comment.LastModifiedTime,
+		)
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return comments, nil
+}

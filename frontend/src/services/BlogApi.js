@@ -30,3 +30,4 @@ export const createBlog = (formData) => {
 export const toggleLike = (blogId) => apiClient.post(`/blogs/${blogId}/like`);
 
 export const addComment = (blogId, text) => apiClient.post(`/blogs/${blogId}/comments`, { text });
+export const getCommentsForBlog = (blogId) => apiClient.get(`/blogs/${blogId}/comments`);
