@@ -85,3 +85,19 @@ export const updateTransportTimes = async (tourId, transportTimes) => {
   const response = await apiClient.put(`/${tourId}/transport-times`, transportTimes);
   return response.data;
 };
+
+export const publishTour = async (tourId) => {
+  const response = await apiClient.patch(`/${tourId}/publish`);
+  return response.data;
+};
+
+export const archiveTour = async (tourId) => {
+  const response = await apiClient.patch(`/${tourId}/archive`);
+  return response.data;
+};
+
+export const reactivateTour = async (tourId) => {
+  const response = await apiClient.patch(`/${tourId}/reactivate`);
+  return response.data;
+};
+
