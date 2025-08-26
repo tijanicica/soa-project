@@ -29,9 +29,42 @@ namespace tour_service.Services
 
         public async Task<bool> UpdateTourAsync(string tourId, Tour updatedTour)
         {
-            var result = await _toursCollection.ReplaceOneAsync(x => x.Id == tourId, updatedTour);
+            var filter = Builders<Tour>.Filter.Eq(x => x.Id, tourId);
+
+            // Ažuriramo samo polja koja se menjaju, umesto da gazimo ceo dokument
+            var update = Builders<Tour>.Update
+                .Set(x => x.Name, updatedTour.Name)
+                .Set(x => x.Description, updatedTour.Description)
+                .Set(x => x.Difficulty, updatedTour.Difficulty)
+                .Set(x => x.Tags, updatedTour.Tags)
+                .Set(x => x.Price, updatedTour.Price); // <-- DODALI SMO CENU
+
+            var result = await _toursCollection.UpdateOneAsync(filter, update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
+
+        public async Task<List<PublishedTourDto>> GetAllPublishedToursAsync()
+        {
+            // 1. Filtriraj samo ture koje su "published"
+            var publishedTours = await _toursCollection.Find(t => t.Status == "published").ToListAsync();
+
+            // 2. Mapiraj svaku turu u DTO
+            var tourDtos = publishedTours.Select(tour => new PublishedTourDto
+            {
+                Id = tour.Id,
+                Name = tour.Name,
+                Description = tour.Description,
+                Difficulty = tour.Difficulty,
+                Tags = tour.Tags,
+                Price = tour.Price,
+                // Uzmi ime i sliku samo PRVE ključne tačke, ako postoji
+                FirstKeyPointName = tour.KeyPoints.FirstOrDefault()?.Name,
+                FirstKeyPointImageUrl = tour.KeyPoints.FirstOrDefault()?.ImageUrl
+            }).ToList();
+
+            return tourDtos;
+        }
+
         public async Task<List<Tour>> GetToursByAuthorAsync(long authorId) =>
             await _toursCollection.Find(x => x.AuthorId == authorId).ToListAsync();
 

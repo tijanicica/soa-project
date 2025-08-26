@@ -101,7 +101,6 @@ export const reactivateTour = async (tourId) => {
   return response.data;
 };
 
-
 export const updateTouristPosition = async (locationData) => {
   const response = await apiClient.put('/position', locationData);
   return response.data;
@@ -110,5 +109,8 @@ export const updateTouristPosition = async (locationData) => {
 
 export const getTouristPosition = async () => {
   const response = await apiClient.get('/position');
+};
+export const getPublishedTours = async () => {
+  const response = await apiClient.get('/published');
   return response.data;
 };

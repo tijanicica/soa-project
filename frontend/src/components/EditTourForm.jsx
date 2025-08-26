@@ -186,7 +186,7 @@ const handleSaveKeypoint = async (keypointData, imageFile) => {
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" name="description" value={tourData.description} onChange={handleChange} required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="difficulty">Difficulty</Label>
                 <select id="difficulty" name="difficulty" value={tourData.difficulty} onChange={handleChange} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
@@ -197,9 +197,24 @@ const handleSaveKeypoint = async (keypointData, imageFile) => {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="tags">Tags (comma-separated)</Label>
-                <Input id="tags" name="tags" value={tourData.tags} onChange={handleChange} required />
+                <Input id="tags" name="tags" value={tourData.tags} onChange={handleChange} />
+              </div>
+              {/* 👇 NOVO POLJE ZA CENU JE DODATO OVDE 👇 */}
+              <div className="grid gap-2">
+                <Label htmlFor="price">Price (RSD)</Label>
+                <Input 
+                  id="price" 
+                  name="price" 
+                  type="number" 
+                  min="0"
+                  value={tourData.price || ''} 
+                  onChange={handleChange} 
+                  placeholder="0"
+                />
               </div>
             </div>
+
+
 
             <div className="grid gap-2 mt-4">
             <Label>Total Distance</Label>
