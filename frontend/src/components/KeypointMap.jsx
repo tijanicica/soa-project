@@ -3,9 +3,6 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-lea
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import 'leaflet-routing-machine';
-
-// Ovaj CSS import je neophodan za stilove linije, ali panel ćemo sakriti opcijama.
-// Ako build puca zbog ovoga, vratite ga u index.css
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -31,41 +28,52 @@ function MapClickHandler({ onMapClick }) {
 }
 
 // Komponenta za rutiranje
-function Routing({ positions }) {
+//  1. DODAJEMO NOVI PROP: onDistanceCalculated
+function Routing({ positions, onDistanceCalculated }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!map || positions.length < 2) return;
+    if (!map) return;
+
+    // Ako nema dovoljno tačaka, javi da je distanca 0 i ne radi ništa više
+    if (positions.length < 2) {
+      if(onDistanceCalculated) onDistanceCalculated(0);
+      return;
+    }
 
     const control = L.Routing.control({
       waypoints: positions.map(([lat, lng]) => L.latLng(lat, lng)),
-      
-      // --- KLJUČNE IZMENE ZA SKRIVANJE UI ELEMENATA ---
-      
-      // 1. Sakriva panel sa tekstualnim instrukcijama
       show: false, 
-      
-      // 2. Onemogućava korisniku da dodaje nove tačke na rutu
       addWaypoints: false, 
-
-      // 3. Onemogućava iscrtavanje A, B, ... markera koje dodaje sama biblioteka
-      //    Ovo je najvažnija izmena da ne biste imali duple markere.
       createMarker: function() { return null; },
-
-      // --- Ostatak opcija ---
       lineOptions: { styles: [{ color: '#0891b2', weight: 5, opacity: 0.8 }] },
       routeWhileDragging: false,
       fitSelectedRoutes: true,
+    });
+    
+    // 👉 2. DODAJEMO EVENT LISTENER
+    control.on('routesfound', function(e) {
+        const routes = e.routes;
+        if (routes.length > 0) {
+            const summary = routes[0].summary;
+            // Dobijamo distancu u metrima, pa je konvertujemo u km
+            const distanceKm = summary.totalDistance / 1000;
+            // Pozivamo funkciju koju smo dobili od roditelja
+            if (onDistanceCalculated) {
+                onDistanceCalculated(distanceKm);
+            }
+        }
     }).addTo(map);
 
     return () => map.removeControl(control);
-  }, [map, positions]);
+  }, [map, positions, onDistanceCalculated]); // 👉 3. DODAJEMO PROP U ZAVISNOSTI
 
   return null;
 }
 
 // Glavna komponenta
-export function KeypointMap({ keypoints = [], onMapClick, onMarkerClick  }) {
+//  4. DODAJEMO NOVI PROP: onDistanceCalculated
+export function KeypointMap({ keypoints = [], onMapClick, onMarkerClick, onDistanceCalculated }) {
   const center = keypoints.length > 0
     ? [keypoints[0].latitude, keypoints[0].longitude]
     : [44.8125, 20.4612];
@@ -79,24 +87,20 @@ export function KeypointMap({ keypoints = [], onMapClick, onMarkerClick  }) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        {/* OVI SU VAŠI MARKERI - ONI OSTAJU */}
-      {keypoints.map((kp, index) => (
+        {keypoints.map((kp, index) => (
           <Marker 
             key={kp.id || index} 
             position={[kp.latitude, kp.longitude]}
-            // 👉 2. DODAJEMO EVENT HANDLER ZA KLIK
             eventHandlers={{
               click: () => {
-                // Ako je funkcija prosleđena, pozovi je sa celim keypoint objektom
-                if (onMarkerClick) {
-                  onMarkerClick(kp);
-                }
+                if (onMarkerClick) onMarkerClick(kp);
               },
             }}
           />
         ))}
-
-        {positions.length > 1 && <Routing positions={positions} />}
+        
+        {/*  5. PROSLEĐUJEMO PROP U <Routing> KOMPONENTU */}
+        <Routing positions={positions} onDistanceCalculated={onDistanceCalculated} />
 
         {onMapClick && <MapClickHandler onMapClick={onMapClick} />}
       </MapContainer>

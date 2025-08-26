@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getTourById, updateTour, addKeypointToTour, deleteKeypoint, updateKeypoint, uploadTourImage } from "../services/TourApi";
+import { getTourById, updateTour, addKeypointToTour, deleteKeypoint, updateKeypoint, uploadTourImage, updateTourDistance } from "../services/TourApi";
 import { KeypointMap } from "./KeypointMap"; 
 import { KeypointFormDialog } from "./KeypointFormDialog";
 import { Loader2, AlertCircle, CheckCircle, Trash2, Edit } from "lucide-react";
@@ -76,6 +76,23 @@ export function EditTourForm() {
     setNewCoordinates(latlng);
     setEditingKeypoint(null);
     setIsDialogOpen(true);
+  };
+
+  const handleDistanceUpdate = async (distanceInKm) => {
+    if (!tourData || tourData.distanceKm === distanceInKm) {
+      return; // Ne radi ništa ako se distanca nije promenila
+    }
+    
+    // 1. Odmah ažuriraj stanje na frontendu za brzi prikaz
+    setTourData(prevData => ({ ...prevData, distanceKm: distanceInKm }));
+
+    // 2. Pošalji novu distancu na backend da se sačuva
+    try {
+      await updateTourDistance(tourId, distanceInKm);
+    } catch (err) {
+      console.error("Failed to update tour distance:", err);
+      // Opciono: prikaži grešku korisniku
+    }
   };
 
    const handleEditClick = (keypoint) => {
@@ -171,6 +188,13 @@ const handleSaveKeypoint = async (keypointData, imageFile) => {
                 <Input id="tags" name="tags" value={tourData.tags} onChange={handleChange} required />
               </div>
             </div>
+
+            <div className="grid gap-2 mt-4">
+            <Label>Total Distance</Label>
+            <p className="text-lg font-semibold">
+              {tourData.distanceKm ? tourData.distanceKm.toFixed(2) : '0.00'} km
+            </p>
+          </div>
           </CardContent>
           <CardFooter className="flex justify-between items-center border-t pt-4">
             <div className="text-sm h-5">
@@ -190,7 +214,7 @@ const handleSaveKeypoint = async (keypointData, imageFile) => {
           <CardDescription>Click on the map to add a new keypoint. Current keypoints are shown below.</CardDescription>
         </CardHeader>
         <CardContent>
-            <KeypointMap keypoints={tourData.keyPoints || []} onMapClick={handleMapClick} onMarkerClick={handleEditClick} />
+            <KeypointMap keypoints={tourData.keyPoints || []} onMapClick={handleMapClick} onMarkerClick={handleEditClick}  onDistanceCalculated={handleDistanceUpdate}/>
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2">Keypoint List</h3>
               <div className="border rounded-md">
