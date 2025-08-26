@@ -101,3 +101,14 @@ export const reactivateTour = async (tourId) => {
   return response.data;
 };
 
+
+export const updateTouristPosition = async (locationData) => {
+  const response = await apiClient.put('/position', locationData);
+  return response.data;
+};
+
+
+export const getTouristPosition = async () => {
+  const response = await apiClient.get('/position');
+  return response.data;
+};

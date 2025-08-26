@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "../hooks/useAuth";
-import { User, LogOut, Compass, Map, Search } from "lucide-react";
+import { User, LogOut, Compass, Map, Search, MapPin } from "lucide-react"
 import { Input } from "@/components/ui/input";
 
 export function TouristNavbar() {
@@ -25,6 +25,9 @@ export function TouristNavbar() {
         </Link>
         <Link to="/blogs" className="text-muted-foreground transition-colors hover:text-foreground">
           Blogs
+        </Link>
+        <Link to="/location-simulator" className="text-muted-foreground transition-colors hover:text-foreground">
+          Location Simulator
         </Link>
       </nav>
       <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
