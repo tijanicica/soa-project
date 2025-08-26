@@ -101,3 +101,7 @@ export const reactivateTour = async (tourId) => {
   return response.data;
 };
 
+export const getPublishedTours = async () => {
+  const response = await apiClient.get('/published');
+  return response.data;
+};

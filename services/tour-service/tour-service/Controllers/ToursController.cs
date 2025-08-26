@@ -185,6 +185,13 @@ namespace tour_service.Controllers
             return NoContent();
         }
 
+        [HttpGet("published")]
+        [AllowAnonymous] // Eksplicitno kažemo da ne treba autorizacija
+        public async Task<ActionResult<List<PublishedTourDto>>> GetPublishedTours()
+        {
+            var tours = await _tourService.GetAllPublishedToursAsync();
+            return Ok(tours);
+        }
 
         // POST /tours/{tourId}/keypoints
         [HttpPost("{tourId:length(24)}/keypoints")]

@@ -4,6 +4,13 @@ using System.Collections.Generic; // Dodajemo ovo za List<T>
 using System; // Dodajemo ovo za DateTime
 namespace tour_service.Models
 {
+    public enum TransportType
+    {
+        Walk,  // Vrednost 0
+        Bike,  // Vrednost 1
+        Car    // Vrednost 2
+    }
+
     public class Tour
     {
         [BsonId]
@@ -52,7 +59,19 @@ namespace tour_service.Models
 
     public class TransportTime
     {
-        public string TransportType { get; set; } = string.Empty;  //enum  "walk", "bike", "car"
+        public TransportType TransportType { get; set; } //enum  "walk", "bike", "car"
         public int DurationMinutes { get; set; }
+    }
+
+    public class PublishedTourDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Difficulty { get; set; } = string.Empty;
+        public List<string> Tags { get; set; } = new();
+        public double Price { get; set; }
+        public string? FirstKeyPointName { get; set; }
+        public string? FirstKeyPointImageUrl { get; set; }
     }
 }
