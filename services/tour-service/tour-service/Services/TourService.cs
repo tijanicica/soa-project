@@ -63,6 +63,14 @@ namespace tour_service.Services
             var result = await _toursCollection.UpdateOneAsync(filter, update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
+        public async Task<bool> UpdateDistanceAsync(string tourId, double newDistance)
+        {
+            var filter = Builders<Tour>.Filter.Eq(x => x.Id, tourId);
+            var update = Builders<Tour>.Update.Set(x => x.DistanceKm, newDistance);
+
+            var result = await _toursCollection.UpdateOneAsync(filter, update);
+            return result.IsAcknowledged && result.ModifiedCount > 0;
+        }
 
         public async Task<bool> DeleteKeyPointAsync(string tourId, string keyPointId)
         {

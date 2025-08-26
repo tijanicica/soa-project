@@ -75,4 +75,8 @@ export const uploadTourImage = async (file) => {
   return response.data;
 };
 
-
+export const updateTourDistance = async (tourId, distance) => {
+  // Šaljemo objekat koji odgovara našem DistanceUpdateDto na backendu
+  const response = await apiClient.put(`/${tourId}/distance`, { distance });
+  return response.data;
+};

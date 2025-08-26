@@ -157,6 +157,34 @@ namespace tour_service.Controllers
             return NoContent();
         }
 
+
+        [HttpPut("{tourId:length(24)}/distance")]
+        [Authorize(Roles = "guide")]
+        public async Task<IActionResult> UpdateTourDistance(string tourId, [FromBody] DistanceUpdateDto distanceDto)
+        {
+            var tour = await _tourService.GetTourAsync(tourId);
+            if (tour is null) return NotFound("Tour not found.");
+
+            // Provera autorizacije (da li je korisnik vlasnik ture)
+            var authorIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(authorIdString, out long userId) || tour.AuthorId != userId)
+            {
+                return Forbid();
+            }
+
+            var success = await _tourService.UpdateDistanceAsync(tourId, distanceDto.Distance);
+            if (!success)
+            {
+                return BadRequest("Could not update tour distance.");
+            }
+            return NoContent();
+        }
+
+        public class DistanceUpdateDto
+        {
+            public double Distance { get; set; }
+        }
+
         // DELETE /tours/{tourId}/keypoints/{keyPointId}
         [HttpDelete("{tourId:length(24)}/keypoints/{keyPointId:length(24)}")]
         [Authorize(Roles = "guide")]
