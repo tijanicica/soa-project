@@ -1,11 +1,15 @@
+
+
+using Amazon.S3;
+using Amazon.S3.Util;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using Steeltoe.Discovery.Client;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using tour_service.Services;
-using Amazon.S3;
-using Amazon.S3.Util;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,7 +77,12 @@ builder.Services.AddAuthentication(options =>
 
 
 builder.Services.AddAuthorization();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDiscoveryClient(builder.Configuration);
