@@ -190,7 +190,7 @@ const handleSaveKeypoint = async (keypointData, imageFile) => {
           <CardDescription>Click on the map to add a new keypoint. Current keypoints are shown below.</CardDescription>
         </CardHeader>
         <CardContent>
-            <KeypointMap keypoints={tourData.keyPoints || []} onMapClick={handleMapClick} />
+            <KeypointMap keypoints={tourData.keyPoints || []} onMapClick={handleMapClick} onMarkerClick={handleEditClick} />
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2">Keypoint List</h3>
               <div className="border rounded-md">

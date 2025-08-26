@@ -1,15 +1,11 @@
 # Stage 1: Build faza
-FROM node:20-alpine AS builder
+FROM node:20-bullseye AS builder
 WORKDIR /app
 
-# Kopiraj package fajlove i instaliraj dependencije
 COPY package*.json ./
-RUN npm install
+RUN npm ci   # bolje od npm install u dockeru
 
-# Kopiraj ostatak koda
 COPY . .
-
-# Build
 RUN npm run build
 
 # Stage 2: Production
