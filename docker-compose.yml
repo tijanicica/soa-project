@@ -196,10 +196,10 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      interval: 20s
+      interval: 25s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 35s
 
   blog-db:
     image: mysql:8.0
@@ -217,10 +217,10 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      interval: 20s
+      interval: 25s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 35s
 
   tour-db:
     # MongoDB za Ture
@@ -236,10 +236,10 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
-      interval: 20s
+      interval: 25s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 35s
 
   followers-db:
     # Neo4j za Praćenja
@@ -255,10 +255,10 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:7474" ]
-      interval: 20s
+      interval: 25s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 35s
 
 networks:
   app-network:

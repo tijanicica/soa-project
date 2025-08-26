@@ -221,39 +221,34 @@ func (s *Store) GetCommentsForBlog(blogID int64) ([]*model.Comment, error) {
 	return comments, nil
 }
 
-func (s *Store) UpdateBlog(blog *model.Blog, imageURLs []string, updateImages bool) error {
+func (s *Store) UpdateBlog(blog *model.Blog, newImageURLs []string, imagesToDelete []string) error {
+	// Sve operacije radimo unutar jedne transakcije
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 
-	// Koristićemo `bytes.Buffer` za efikasno građenje SQL upita
+	// === Ažuriranje teksta (dinamički upit) ===
 	var query bytes.Buffer
 	query.WriteString("UPDATE blogs SET last_modified_date = ?")
-
-	// Lista argumenata za SQL upit
 	args := []interface{}{time.Now()}
 
-	// Ako je naslov prosleđen (nije prazan), dodajemo ga u upit
+	// Dodajemo polja u upit samo ako je korisnik poslao nove vrednosti
 	if blog.Title != "" {
 		query.WriteString(", title = ?")
 		args = append(args, blog.Title)
 	}
-
-	// Ako je opis prosleđen, dodajemo ga u upit
 	if blog.DescriptionMarkdown != "" {
 		query.WriteString(", description_markdown = ?")
 		args = append(args, blog.DescriptionMarkdown)
 	}
 
-	// Ako nema ni naslova ni opisa, nećemo ažurirati `blogs` tabelu uopšte
-	// osim ako ne ažuriramo i slike (onda bar `last_modified_date` treba da se promeni)
-	if len(args) > 1 || updateImages {
-		// Dodajemo WHERE klauzulu za proveru vlasništva
+	// Izvršavamo upit za tekst samo ako se nešto zaista menja
+	// (ili ako se menjaju slike, da bi se ažurirao `last_modified_date`)
+	if len(args) > 1 || len(newImageURLs) > 0 || len(imagesToDelete) > 0 {
 		query.WriteString(" WHERE id = ? AND author_id = ?")
 		args = append(args, blog.ID, blog.AuthorID)
 
-		// Izvršavamo dinamički kreiran upit
 		res, err := tx.Exec(query.String(), args...)
 		if err != nil {
 			tx.Rollback()
@@ -267,36 +262,47 @@ func (s *Store) UpdateBlog(blog *model.Blog, imageURLs []string, updateImages bo
 		}
 		if rowsAffected == 0 {
 			tx.Rollback()
-			return sql.ErrNoRows
+			return sql.ErrNoRows // Vraćamo grešku ako blog nije nađen ili korisnik nije vlasnik
 		}
 	}
 
-	// Ažuriranje slika, samo ako je `updateImages` postavljeno na true
-	if updateImages {
-		// 1. Brišemo sve stare slike za ovaj blog
-		_, err = tx.Exec("DELETE FROM blog_images WHERE blog_id = ?", blog.ID)
+	// === Ažuriranje slika (nova, granularna logika) ===
+
+	// 1. Brišemo SAMO one slike koje je korisnik označio za brisanje.
+	if len(imagesToDelete) > 0 {
+		// Gradimo `IN (?,?,?)` klauzulu za efikasno brisanje više slika odjednom
+		deleteQuery := "DELETE FROM blog_images WHERE blog_id = ? AND image_url IN (?" + strings.Repeat(",?", len(imagesToDelete)-1) + ")"
+
+		deleteArgs := make([]interface{}, len(imagesToDelete)+1)
+		deleteArgs[0] = blog.ID
+		for i, url := range imagesToDelete {
+			deleteArgs[i+1] = url
+		}
+
+		_, err = tx.Exec(deleteQuery, deleteArgs...)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
+	}
 
-		// 2. Ako ima novih slika, dodajemo ih
-		if len(imageURLs) > 0 {
-			stmt, err := tx.Prepare("INSERT INTO blog_images (blog_id, image_url) VALUES (?, ?)")
-			if err != nil {
+	// 2. Dodajemo SAMO nove slike koje je korisnik uploadovao.
+	if len(newImageURLs) > 0 {
+		stmt, err := tx.Prepare("INSERT INTO blog_images (blog_id, image_url) VALUES (?, ?)")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		defer stmt.Close()
+
+		for _, url := range newImageURLs {
+			if _, err := stmt.Exec(blog.ID, url); err != nil {
 				tx.Rollback()
 				return err
-			}
-			defer stmt.Close()
-
-			for _, url := range imageURLs {
-				if _, err := stmt.Exec(blog.ID, url); err != nil {
-					tx.Rollback()
-					return err
-				}
 			}
 		}
 	}
 
+	// Ako je sve prošlo uspešno, potvrđujemo celu transakciju
 	return tx.Commit()
 }

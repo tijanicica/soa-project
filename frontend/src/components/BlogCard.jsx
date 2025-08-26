@@ -13,10 +13,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Heart, MessageSquare, Send, Loader2 } from "lucide-react";
+import { Heart, MessageSquare, Send, Loader2, Edit } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "date-fns";
 import { getCommentsForBlog } from "../services/BlogApi";
+import { jwtDecode } from 'jwt-decode';
+import { EditBlogDialog } from './EditBlogDialog'; 
 
 // New Carousel imports
 import {
@@ -51,15 +53,19 @@ const Comment = ({ comment }) => (
   </div>
 );
 
-
-export function BlogCard({ blog, onLikeToggle, onAddComment }) {
+export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
   const [commentText, setCommentText] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
   const [comments, setComments] = useState([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [areCommentsVisible, setAreCommentsVisible] = useState(false);
 
-  // Logic functions remain the same
+  // ===== Nova Logika: Provera vlasništva bloga =====
+  const token = localStorage.getItem('jwtToken');
+  const currentUser = token ? jwtDecode(token) : null;
+  const isOwner = currentUser && currentUser.sub == blog.authorId;
+
+  // Funkcije handleCommentSubmit i fetchComments ostaju iste
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
@@ -107,8 +113,8 @@ export function BlogCard({ blog, onLikeToggle, onAddComment }) {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
-                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
+                <CarouselPrevious className="absolute left-4 top-1-2 -translate-y-1/2" />
+                <CarouselNext className="absolute right-4 top-1-2 -translate-y-1/2" />
               </Carousel>
             ) : (
               <img
@@ -119,7 +125,31 @@ export function BlogCard({ blog, onLikeToggle, onAddComment }) {
             )}
           </div>
         )}
-        <CardTitle className="text-2xl font-bold">{blog.title}</CardTitle>
+
+        {/* ===== Novi Deo: Flex kontejner za naslov i Edit dugme ===== */}
+        <div className="flex justify-between items-start gap-4">
+            <CardTitle className="text-2xl font-bold">{blog.title}</CardTitle>
+            
+            {/* "Edit" dugme se prikazuje samo ako je korisnik vlasnik */}
+           {isOwner && (
+                <EditBlogDialog 
+                blog={blog} 
+                onBlogUpdated={onBlogUpdated}
+                trigger={
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full flex-shrink-0"
+                        // ===== DODAJTE OVU LINIJU =====
+                        onClick={() => console.log("Editing Post ID:", blog.id)}
+                    >
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                }
+                />
+            )}
+        </div>
+        
         <p className="text-sm text-muted-foreground">
           Posted by User {blog.authorId} •{" "}
           {formatDistanceToNow(new Date(blog.creationDate), {
@@ -132,10 +162,9 @@ export function BlogCard({ blog, onLikeToggle, onAddComment }) {
           <ReactMarkdown>{blog.descriptionMarkdown}</ReactMarkdown>
         </div>
       </CardContent>
-      {/* --- NEW CARD FOOTER AND COMMENTS LAYOUT --- */}
+      {/* Footer i komentari ostaju isti */}
       <CardFooter className="flex flex-col items-start gap-4">
         <Collapsible onOpenChange={setAreCommentsVisible} className="w-full">
-          {/* Action buttons are now direct children */}
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -161,11 +190,9 @@ export function BlogCard({ blog, onLikeToggle, onAddComment }) {
             </CollapsibleTrigger>
           </div>
           
-          {/* Collapsible content now spans full width naturally */}
           <CollapsibleContent className="w-full pt-4">
             <div className="space-y-4 rounded-lg bg-muted p-4">
               <h4 className="font-semibold text-base">Comments</h4>
-              {/* Comment form */}
               <form onSubmit={handleCommentSubmit} className="flex gap-2 w-full">
                 <Textarea
                   placeholder="Write a comment..."
@@ -179,7 +206,6 @@ export function BlogCard({ blog, onLikeToggle, onAddComment }) {
                 </Button>
               </form>
 
-              {/* Comments list */}
               <div className="space-y-2">
                 {isLoadingComments ? (
                   <div className="flex justify-center items-center p-4">

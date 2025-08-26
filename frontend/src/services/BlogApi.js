@@ -31,3 +31,11 @@ export const toggleLike = (blogId) => apiClient.post(`/blogs/${blogId}/like`);
 
 export const addComment = (blogId, text) => apiClient.post(`/blogs/${blogId}/comments`, { text });
 export const getCommentsForBlog = (blogId) => apiClient.get(`/blogs/${blogId}/comments`);
+
+export const updateBlog = (blogId, formData) => {
+  return apiClient.put(`/blogs/${blogId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};

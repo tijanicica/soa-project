@@ -10,6 +10,7 @@ export function BlogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+
   
 
   const fetchBlogs = async () => {
@@ -23,6 +24,10 @@ export function BlogPage() {
       setIsLoading(false);
     }
   };
+
+  const refreshBlogs = () => {
+    fetchBlogs(); // ili fetchBlogsAndAuthors
+};
 
   useEffect(() => {
     fetchBlogs();
@@ -91,6 +96,7 @@ export function BlogPage() {
                   blog={blog}
                   onLikeToggle={handleLikeToggle}
                   onAddComment={handleAddComment}
+                  onBlogUpdated={refreshBlogs}
                 />
               ))
             ) : (
