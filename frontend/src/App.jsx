@@ -16,6 +16,7 @@ import { BlogPage } from "./pages/BlogPage";
 import { CreateTourPage } from './pages/CreateTourPage';
 import { EditTourPage } from './pages/EditTourPage'; 
 import { MyToursPage } from './pages/MyToursPage';
+import { LocationSimulatorPage } from './pages/LocationSimulatorPage';
 
 
 // Pomoćna komponenta za preusmeravanje ulogovanih korisnika sa "/" putanje
@@ -62,10 +63,13 @@ function AppContent() {
         <Route path="/guide/my-tours" element={<MyToursPage />} />
       </Route>
 
+      <Route path="/location-simulator" element={<LocationSimulatorPage />} />
+
       <Route element={<ProtectedRoute allowedRoles={["tourist"]} />}>
         <Route path="/home" element={<HomePage />} />
         <Route path="/blogs" element={<BlogPage />} />
         <Route path="/tourist/profile" element={<TouristProfilePage />} />
+      
       </Route>
 
       {/* Glavna ruta "/" preusmerava na osnovu uloge ili na login */}
