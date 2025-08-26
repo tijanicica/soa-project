@@ -14,10 +14,12 @@ namespace tour_service.Models
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Difficulty { get; set; } = string.Empty;
+        public DateTime CreationDate { get; set; }
+
         public List<string> Tags { get; set; } = new();
-        public string Status { get; set; } = "draft"; // Postavljamo "draft" kao podrazumevani status
+        public string Status { get; set; } = "draft"; // Postavljamo "draft" kao podrazumevani statusI: draft, published i archived.
         public double Price { get; set; }
-        public DateTime? PublishTime { get; set; } // Nullable tipovi ne moraju da se inicijalizuju
+        public DateTime? PublishTime { get; set; } // kaDA JE PUBLISHED PSOTAVIS I OVO
         public DateTime? ArchiveTime { get; set; }
         public double DistanceKm { get; set; }
         public List<TransportTime> TransportTimes { get; set; } = new();
@@ -50,7 +52,7 @@ namespace tour_service.Models
 
     public class TransportTime
     {
-        public string TransportType { get; set; } = string.Empty;  // "walk", "bike", "car"
+        public string TransportType { get; set; } = string.Empty;  //enum  "walk", "bike", "car"
         public int DurationMinutes { get; set; }
     }
 }

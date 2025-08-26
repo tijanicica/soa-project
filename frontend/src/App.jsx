@@ -1,5 +1,6 @@
 // frontend/src/App.jsx (FINALNA, ISPRAVLJENA VERZIJA)
 
+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContextProvider";
 import { useAuth } from "./hooks/useAuth";
@@ -13,6 +14,10 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { TouristProfilePage } from "./pages/TouristProfilePage";
 import { GuideProfilePage } from "./pages/GuideProfilePage";
 import { BlogPage } from "./pages/BlogPage";
+import { CreateTourPage } from './pages/CreateTourPage';
+import { EditTourPage } from './pages/EditTourPage'; 
+import { MyToursPage } from './pages/MyToursPage';
+
 
 // Pomoćna komponenta za preusmeravanje ulogovanih korisnika sa "/" putanje
 function RedirectIfLoggedIn() {
@@ -52,7 +57,10 @@ function AppContent() {
 
       <Route element={<ProtectedRoute allowedRoles={["guide"]} />}>
         <Route path="/guide" element={<GuidePage />} />
-        <Route path="/guide/profile" element={<GuideProfilePage />} />
+        <Route path="/guide/profile" element={<GuideProfilePage /> } />
+         <Route path="/guide/tours/new" element={<CreateTourPage />} />
+        <Route path="/guide/tours/edit/:tourId" element={<EditTourPage />} />
+        <Route path="/guide/my-tours" element={<MyToursPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={["tourist"]} />}>

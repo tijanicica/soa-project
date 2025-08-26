@@ -8,23 +8,21 @@ const apiClient = axios.create({
   baseURL: API_URL,
 });
 
-// Interceptor (presretač) koji će se izvršiti PRE SVAKOG zahteva
+
 apiClient.interceptors.request.use(
-  (config) => {
-    // Pročitaj token iz localStorage
-    const token = localStorage.getItem('jwtToken'); // ISPRAVLJEN KLJUČ
-    
-    // Ako token postoji, dodaj ga u Authorization zaglavlje
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
+(config) => {
+const token = localStorage.getItem('jwtToken'); // Čita ispravan ključ
+if (token) {
+// Ispravno - ovo je "template literal" string
+config.headers['Authorization'] = `Bearer ${token}`;
+}
+return config;
+},
+(error) => {
+return Promise.reject(error);
+}
 );
+
 
 
 export const loginUser = async (credentials) => {
@@ -35,6 +33,24 @@ export const loginUser = async (credentials) => {
 
 export const registerUser = async (userData) => {
     const response = await apiClient.post('/register', userData);
+    return response.data;
+};
+
+
+export const getAllUsers = async () => {
+const response = await apiClient.get('/api/users');
+return response.data;
+};
+
+
+export const blockUser = async (userId) => {
+    const response = await apiClient.put(`/api/users/${userId}/block`);
+    return response.data;
+};
+
+// Funkcija za odblokiranje korisnika.
+export const unblockUser = async (userId) => {
+    const response = await apiClient.put(`/api/users/${userId}/unblock`);
     return response.data;
 };
 

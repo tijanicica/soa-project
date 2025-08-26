@@ -129,6 +129,11 @@ services:
       - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
       - ASPNETCORE_URLS=http://+:8003
       - ConnectionStrings__TourDatabase=mongodb://user:password@tour-db:27017
+      - JwtKey=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
+      - Minio__Endpoint=http://minio:9000
+      - Minio__AccessKey=minioadmin
+      - Minio__SecretKey=minioadmin
+      - Minio__BucketName=tour-images
     networks:
       - app-network
     healthcheck:
@@ -142,6 +147,8 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
+      minio:
+        condition: service_healthy
 
   followers-service:
     build:
@@ -154,6 +161,7 @@ services:
       - Neo4j__Uri=bolt://followers-db:7687
       - Neo4j__Username=neo4j
       - Neo4j__Password=password
+      - JwtKey=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
     networks:
       - app-network
     healthcheck:
