@@ -39,7 +39,7 @@
 
     {
       "UpstreamPathTemplate": "/tours/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {

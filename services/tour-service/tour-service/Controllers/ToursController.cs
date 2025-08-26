@@ -122,6 +122,69 @@ namespace tour_service.Controllers
             }
             return NoContent();
         }
+        
+        [HttpPatch("{tourId:length(24)}/publish")]
+        [Authorize(Roles = "guide")]
+        public async Task<IActionResult> PublishTour(string tourId)
+        {
+            var tour = await _tourService.GetTourAsync(tourId);
+            if (tour is null) return NotFound("Tour not found.");
+
+            var authorIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(authorIdString, out long userId) || tour.AuthorId != userId) return Forbid();
+
+            if (string.IsNullOrEmpty(tour.Name) || string.IsNullOrEmpty(tour.Description) ||
+                string.IsNullOrEmpty(tour.Difficulty) || !tour.Tags.Any())
+            {
+                return BadRequest("Tour is missing basic information (name, description, difficulty, or tags).");
+            }
+            if (tour.KeyPoints.Count < 2)
+            {
+                return BadRequest("Tour must have at least two keypoints to be published.");
+            }
+            if (!tour.TransportTimes.Any())
+            {
+                return BadRequest("At least one transport time must be defined to publish the tour.");
+            }
+
+            var success = await _tourService.PublishTourAsync(tourId);
+            if (!success) return BadRequest("Could not publish the tour.");
+
+            return NoContent();
+        }
+
+        [HttpPatch("{tourId:length(24)}/archive")]
+        [Authorize(Roles = "guide")]
+        public async Task<IActionResult> ArchiveTour(string tourId)
+        {
+            var tour = await _tourService.GetTourAsync(tourId);
+            if (tour is null) return NotFound("Tour not found.");
+
+            var authorIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(authorIdString, out long userId) || tour.AuthorId != userId) return Forbid();
+
+            var success = await _tourService.ArchiveTourAsync(tourId);
+            if (!success) return BadRequest("Could not archive the tour.");
+
+            return NoContent();
+        }
+
+        [HttpPatch("{tourId:length(24)}/reactivate")]
+        [Authorize(Roles = "guide")]
+        public async Task<IActionResult> ReactivateTour(string tourId)
+        {
+            var tour = await _tourService.GetTourAsync(tourId);
+            if (tour is null) return NotFound("Tour not found.");
+
+            var authorIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(authorIdString, out long userId) || tour.AuthorId != userId) return Forbid();
+
+            var success = await _tourService.ReactivateTourAsync(tourId);
+            if (!success) return BadRequest("Could not reactivate the tour.");
+
+            return NoContent();
+        }
+
 
         // POST /tours/{tourId}/keypoints
         [HttpPost("{tourId:length(24)}/keypoints")]

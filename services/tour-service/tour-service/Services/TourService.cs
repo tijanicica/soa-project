@@ -90,5 +90,37 @@ namespace tour_service.Services
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
+        public async Task<bool> PublishTourAsync(string tourId)
+        {
+            var filter = Builders<Tour>.Filter.Eq(x => x.Id, tourId);
+            var update = Builders<Tour>.Update
+                .Set(x => x.Status, "published")
+                .Set(x => x.PublishTime, DateTime.UtcNow);
+
+            var result = await _toursCollection.UpdateOneAsync(filter, update);
+            return result.IsAcknowledged && result.ModifiedCount > 0;
+        }
+
+        public async Task<bool> ArchiveTourAsync(string tourId)
+        {
+            var filter = Builders<Tour>.Filter.Eq(x => x.Id, tourId);
+            var update = Builders<Tour>.Update
+                .Set(x => x.Status, "archived")
+                .Set(x => x.ArchiveTime, DateTime.UtcNow);
+
+            var result = await _toursCollection.UpdateOneAsync(filter, update);
+            return result.IsAcknowledged && result.ModifiedCount > 0;
+        }
+
+        public async Task<bool> ReactivateTourAsync(string tourId)
+        {
+            var filter = Builders<Tour>.Filter.Eq(x => x.Id, tourId);
+            var update = Builders<Tour>.Update
+                .Set(x => x.Status, "published")
+                .Unset(x => x.ArchiveTime); // Uklanjamo vreme arhiviranja
+
+            var result = await _toursCollection.UpdateOneAsync(filter, update);
+            return result.IsAcknowledged && result.ModifiedCount > 0;
+        }
     }
 }
