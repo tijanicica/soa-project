@@ -10,7 +10,6 @@ import { HomePage } from "./pages/HomePage";
 import { AdminPage } from "./pages/AdminPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { GuidePage } from "./pages/GuidePage";
-import { ProfilePage } from "./pages/ProfilePage";
 import { TouristProfilePage } from "./pages/TouristProfilePage";
 import { GuideProfilePage } from "./pages/GuideProfilePage";
 import { BlogPage } from "./pages/BlogPage";
