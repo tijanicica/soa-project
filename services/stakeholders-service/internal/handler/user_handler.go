@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"log"
+
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,34 +15,28 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// AppClaims je naša custom struktura za podatke unutar JWT tokena.
-// Ona "ugnježđuje" (embeds) standardne RegisteredClaims i dodaje naša polja.
 type AppClaims struct {
 	Role string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-// Definišemo ključ za potpisivanje tokena. U pravoj aplikaciji, ovo bi trebalo da bude
-// tajna koja se čita iz environment varijabli, a ne da je hardkodovana.
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
-// UserHandler sadrži zavisnosti za handlere, kao što je konekcija ka bazi.
 type UserHandler struct {
 	store    *store.Store
 	s3Client *s3.S3
 }
 
-// NewUserHandler je konstruktor za UserHandler
 func NewUserHandler(store *store.Store, s3Client *s3.S3) *UserHandler {
 	return &UserHandler{store: store, s3Client: s3Client}
 }
 
-// UploadProfileImage je handler za upload slike
 func (h *UserHandler) UploadProfileImage(c *gin.Context) {
 	// Sada nam STVARNO treba userID
 	userIDValue, exists := c.Get("userID")
@@ -49,7 +44,6 @@ func (h *UserHandler) UploadProfileImage(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
-	// Sigurna konverzija tipa
 	userID, _ := userIDValue.(int64)
 
 	file, err := c.FormFile("profileImage")
@@ -57,12 +51,7 @@ func (h *UserHandler) UploadProfileImage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Image not provided"})
 		return
 	}
-
-	// --- POČETAK IZMENE: Kreiramo bolje ime fajla ---
-	// Dobijamo ekstenziju fajla, npr. ".jpg", ".png"
 	extension := filepath.Ext(file.Filename)
-	// Kreiramo unikatno ime fajla koristeći ID korisnika i trenutno vreme
-	// Primer: user-2-1678886400.jpg
 	uniqueFileName := fmt.Sprintf("user-%d-%d%s", userID, time.Now().Unix(), extension)
 	bucketName := "user-profiles"
 
@@ -173,7 +162,6 @@ func (h *UserHandler) Register(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Email is already registered"})
 		return
 	}
-	// --- KRAJ NOVE VALIDACIJE ---
 
 	// Validacija uloge (ostaje ista)
 	switch req.Role {
@@ -218,6 +206,12 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
+	if !user.IsActive {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Your account has been blocked."})
+		return
+	}
+	// --- KRAJ NOVE PROVERE ---
+
 	// Proveri lozinku
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
@@ -247,9 +241,56 @@ func (h *UserHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, model.LoginResponse{Token: tokenString})
 }
 
+func (h *UserHandler) GetAllUsers(c *gin.Context) {
+	// U realnoj aplikaciji, ovde bi trebalo dodati proveru da li je ulogovani korisnik administrator.
+	// To se obično radi unutar middleware-a koji proverava JWT token.
+
+	users, err := h.store.GetAllUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
+func (h *UserHandler) BlockUser(c *gin.Context) {
+	// 1. Dohvatamo ID korisnika iz URL-a.
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// 2. Dohvatamo korisnika kojeg želimo da blokiramo iz baze.
+	userToBlock, err := h.store.GetUserByID(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user information"})
+		return
+	}
+	if userToBlock == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// 3. Proveravamo njegovu ulogu.
+	if userToBlock.Role == "administrator" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Administrator accounts cannot be blocked."})
+		return
+	}
+
+	// 4. Ako su sve provere prošle, nastavljamo sa blokiranjem.
+	if err := h.store.BlockUser(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to block user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User blocked successfully"})
+}
+
 // GetProfile je handler za dobijanje profila ulogovanog korisnika
 func (h *UserHandler) GetProfile(c *gin.Context) {
-	// --- POČETAK ISPRAVKE ---
 	userIDValue, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
@@ -262,13 +303,12 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "User ID in context is not of expected type"})
 		return
 	}
-	// --- KRAJ ISPRAVKE ---
 
 	profile, err := h.store.GetProfileByUserID(userID)
 	if err != nil {
-		// --- POČETAK IZMENE: Logovanje greške ---
+
 		log.Printf("ERROR retrieving profile for user ID %d: %v", userID, err)
-		// --- KRAJ IZMENE ---
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve profile"})
 		return
 	}
@@ -281,7 +321,6 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, profile)
 }
 
-// UpdateProfile je handler za ažuriranje ili kreiranje profila ulogovanog korisnika
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID, _ := c.Get("userID")
 
@@ -299,4 +338,22 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
+
+}
+
+// UnblockUser je handler za odblokiranje korisnika.
+func (h *UserHandler) UnblockUser(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	if err := h.store.UnblockUser(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unblock user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User unblocked successfully"})
 }
