@@ -48,6 +48,12 @@ export const blockUser = async (userId) => {
     return response.data;
 };
 
+// Funkcija za odblokiranje korisnika.
+export const unblockUser = async (userId) => {
+    const response = await apiClient.put(`/api/users/${userId}/unblock`);
+    return response.data;
+};
+
 
 export const getUserProfile = () => {
   return apiClient.get('/profile');

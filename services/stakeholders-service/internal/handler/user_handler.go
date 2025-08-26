@@ -1,7 +1,6 @@
 package handler
 
 import (
-
 	"fmt"
 	"log"
 
@@ -14,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 
@@ -23,12 +21,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-
 type AppClaims struct {
 	Role string `json:"role"`
 	jwt.RegisteredClaims
 }
-
 
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
@@ -167,7 +163,6 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-
 	// Validacija uloge (ostaje ista)
 	switch req.Role {
 	case "guide", "tourist":
@@ -246,7 +241,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, model.LoginResponse{Token: tokenString})
 }
 
-
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	// U realnoj aplikaciji, ovde bi trebalo dodati proveru da li je ulogovani korisnik administrator.
 	// To se obično radi unutar middleware-a koji proverava JWT token.
@@ -259,7 +253,6 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, users)
 }
-
 
 func (h *UserHandler) BlockUser(c *gin.Context) {
 	// 1. Dohvatamo ID korisnika iz URL-a.
@@ -296,7 +289,6 @@ func (h *UserHandler) BlockUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User blocked successfully"})
 }
 
-
 // GetProfile je handler za dobijanje profila ulogovanog korisnika
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userIDValue, exists := c.Get("userID")
@@ -312,12 +304,11 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-
 	profile, err := h.store.GetProfileByUserID(userID)
 	if err != nil {
 
 		log.Printf("ERROR retrieving profile for user ID %d: %v", userID, err)
-	
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve profile"})
 		return
 	}
@@ -329,7 +320,6 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
-
 
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID, _ := c.Get("userID")
@@ -349,4 +339,21 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 
+}
+
+// UnblockUser je handler za odblokiranje korisnika.
+func (h *UserHandler) UnblockUser(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	if err := h.store.UnblockUser(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unblock user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User unblocked successfully"})
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getAllUsers, blockUser } from '../services/StakeholdersApi';
+import { getAllUsers, blockUser, unblockUser  } from '../services/StakeholdersApi';
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, AlertTriangle, Users, LogOut, Ban } from 'lucide-react';
+import { Loader2, AlertTriangle, Users, LogOut, Ban, CheckCircle } from 'lucide-react';
 
 export function AdminPage() {
   const { auth, logout } = useAuth();
@@ -48,13 +48,26 @@ export function AdminPage() {
       }
     }
   }; // <-- ISPRAVKA #1: DODATA JE ZAGRADA KOJA NEDOSTAJE
+ const handleUnblockUser = async (userIdToUnblock) => {
+        if (window.confirm('Are you sure you want to unblock this user?')) {
+            try {
+                await unblockUser(userIdToUnblock);
+                // Ažuriramo stanje za instant promenu u UI
+                setUsers(users.map(user => 
+                    user.id === userIdToUnblock ? { ...user, isActive: true } : user
+                ));
+            } catch (err) {
+                alert(err.response?.data?.error || 'Failed to unblock user.');
+            }
+        }
+    };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  return (
+   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         <header className="flex justify-between items-center mb-6 pb-4 border-b">
@@ -104,8 +117,6 @@ export function AdminPage() {
                     <TableCell className="font-medium">{user.id}</TableCell>
                     <TableCell>{user.username}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    
-                    {/* --- ISPRAVKA #3: VRAĆEN KOD ZA PRIKAZ ROLE --- */}
                     <TableCell>
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                         user.role === 'administrator' ? 'bg-purple-200 text-purple-800' :
@@ -115,7 +126,6 @@ export function AdminPage() {
                         {user.role}
                       </span>
                     </TableCell>
-
                     <TableCell>
                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                         user.isActive ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
@@ -123,18 +133,38 @@ export function AdminPage() {
                         {user.isActive ? 'Active' : 'Blocked'}
                       </span>
                     </TableCell>
+
+                    {/* --- POČETAK IZMENJENOG DELA --- */}
                     <TableCell className="text-right">
-                      {user.isActive && auth.user && user.id !== parseInt(auth.user.id) && (
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleBlockUser(user.id)}
-                        >
-                          <Ban className="h-4 w-4 mr-2" />
-                          Block
-                        </Button>
-                      )}
+                      {/* Prvo proveravamo da li je korisnik u tabeli različit od ulogovanog admina */}
+                      {auth.user && user.id !== parseInt(auth.user.id) ? (
+                        // Ako jeste, onda proveravamo da li je aktivan
+                        user.isActive ? (
+                          // Ako je aktivan, prikaži "Block" dugme
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleBlockUser(user.id)}
+                          >
+                            <Ban className="h-4 w-4 mr-2" />
+                            Block
+                          </Button>
+                        ) : (
+                          // Ako nije aktivan (blokiran je), prikaži "Unblock" dugme
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700"
+                            onClick={() => handleUnblockUser(user.id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Unblock
+                          </Button>
+                        )
+                      ) : null /* Ako je u pitanju sam admin, ne prikazuj ništa */}
                     </TableCell>
+                    {/* --- KRAJ IZMENJENOG DELA --- */}
+
                   </TableRow>
                 ))}
               </TableBody>

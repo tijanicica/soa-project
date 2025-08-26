@@ -18,7 +18,6 @@ import (
 	"stakeholders-service/internal/store"
 )
 
-
 func registerWithEureka(serviceName string, port int) {
 	eurekaURL := os.Getenv("EUREKA_URL")
 	if eurekaURL == "" {
@@ -86,12 +85,10 @@ func main() {
 		log.Fatalf("Failed to initialize database tables: %v", err)
 	}
 
-
 	if err := dbStore.Seed(); err != nil {
 
 		log.Printf("Warning: Failed to seed database: %v", err)
 	}
-
 
 	log.Println("Connecting to S3 storage...")
 	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
@@ -137,19 +134,19 @@ func main() {
 
 	router.POST("/register", userHandler.Register)
 	router.POST("/login", userHandler.Login)
-  router.GET("/health", func(c *gin.Context) {
+	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})
 	})
-
 
 	adminRoutes := router.Group("/api")
 	// adminRoutes.Use(AuthMiddleware("administrator")) // Primer kako bi zaštita rute izgledala
 	{
 		adminRoutes.GET("/users", userHandler.GetAllUsers)
 		adminRoutes.PUT("/users/:id/block", userHandler.BlockUser)
-  }
-	
-	
+		adminRoutes.PUT("/users/:id/unblock", userHandler.UnblockUser)
+
+	}
+
 	// ZAŠTIĆENE RUTE
 	profileRoutes := router.Group("/profile")
 	profileRoutes.Use(handler.AuthMiddleware())

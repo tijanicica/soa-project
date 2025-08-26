@@ -7,7 +7,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-
 func (s *Store) CreateUser(user *model.User) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -18,7 +17,6 @@ func (s *Store) CreateUser(user *model.User) error {
 		user.Username, string(hashedPassword), user.Email, user.Role)
 	return err
 }
-
 
 func (s *Store) GetUserByUsername(username string) (*model.User, error) {
 	user := &model.User{}
@@ -35,8 +33,6 @@ func (s *Store) GetUserByUsername(username string) (*model.User, error) {
 	}
 	return user, nil
 }
-
-
 
 func (s *Store) GetAllUsers() ([]model.User, error) {
 	rows, err := s.db.Query("SELECT id, username, email, role, is_active FROM users")
@@ -112,7 +108,6 @@ func (s *Store) UpdateProfile(profile *model.Profile) error {
 	return err
 }
 
-
 func (s *Store) GetUserByEmail(email string) (*model.User, error) {
 	user := &model.User{}
 	row := s.db.QueryRow("SELECT id FROM users WHERE email = ?", email)
@@ -127,4 +122,10 @@ func (s *Store) GetUserByEmail(email string) (*model.User, error) {
 		return nil, err
 	}
 	return user, nil
+}
+
+// UnblockUser postavlja is_active status korisnika na true.
+func (s *Store) UnblockUser(userID int64) error {
+	_, err := s.db.Exec("UPDATE users SET is_active = TRUE WHERE id = ?", userID)
+	return err
 }

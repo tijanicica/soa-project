@@ -2,6 +2,7 @@
 using Amazon.S3.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration; // <-- Dodao sam ovaj using, za svaki slučaj
 
 namespace tour_service.Controllers
 {
@@ -15,9 +16,11 @@ namespace tour_service.Controllers
         private readonly string _bucketName;
         private readonly string _minioPublicEndpoint;
 
-        public FilesController(IAmazonS3 s3Client, IConfiguration configuratiUpdateKeyPointAsyncon)
+        // --- ISPRAVLJEN KONSTRUKTOR ---
+        public FilesController(IAmazonS3 s3Client, IConfiguration configuration)
         {
             _s3Client = s3Client;
+            // Sada koristimo ispravno ime 'configuration' koje stiže kao parametar
             _bucketName = configuration["Minio:BucketName"];
             _minioPublicEndpoint = "http://localhost:9000";
         }
