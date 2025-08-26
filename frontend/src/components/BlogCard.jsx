@@ -13,7 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Heart, MessageSquare, Send, Loader2, Edit } from "lucide-react";
+import { Heart, MessageSquare, Send, Loader2, Edit, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "date-fns";
 import { getCommentsForBlog } from "../services/BlogApi";
@@ -64,6 +64,7 @@ export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
   const token = localStorage.getItem('jwtToken');
   const currentUser = token ? jwtDecode(token) : null;
   const isOwner = currentUser && currentUser.sub == blog.authorId;
+   const wasEdited = new Date(blog.lastModifiedDate).getTime() > new Date(blog.creationDate).getTime() + 1000;
 
   // Funkcije handleCommentSubmit i fetchComments ostaju iste
   const handleCommentSubmit = async (e) => {
@@ -132,29 +133,41 @@ export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
             
             {/* "Edit" dugme se prikazuje samo ako je korisnik vlasnik */}
            {isOwner && (
-                <EditBlogDialog 
-                blog={blog} 
-                onBlogUpdated={onBlogUpdated}
-                trigger={
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 rounded-full flex-shrink-0"
-                        // ===== DODAJTE OVU LINIJU =====
-                        onClick={() => console.log("Editing Post ID:", blog.id)}
-                    >
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                }
-                />
+    // ===== POČETAK IZMENE =====
+                <div onClick={() => console.log("Opening edit dialog for Post ID:", blog.id)}>
+                    <EditBlogDialog 
+                    blog={blog} 
+                    onBlogUpdated={onBlogUpdated}
+                    trigger={
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-full flex-shrink-0"
+                            // Uklonili smo onClick odavde
+                        >
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                    }
+                    />
+                </div>
             )}
         </div>
         
-        <p className="text-sm text-muted-foreground">
-          Posted by User {blog.authorId} •{" "}
-          {formatDistanceToNow(new Date(blog.creationDate), {
-            addSuffix: true,
-          })}
+       <p className="text-sm text-muted-foreground flex items-center flex-wrap">
+          <span>Posted by User {blog.authorId}</span>
+          <span className="mx-1.5">•</span>
+          <span>{formatDistanceToNow(new Date(blog.creationDate), { addSuffix: true })}</span>
+          
+          {/* Uslovno prikazujemo "edited" poruku */}
+          {wasEdited && (
+            <>
+              <span className="mx-1.5">•</span>
+              <span className="flex items-center text-xs italic opacity-75">
+                edited {formatDistanceToNow(new Date(blog.lastModifiedDate), { addSuffix: true })}
+                <Clock className="h-3 w-3 ml-1" />
+              </span>
+            </>
+          )}
         </p>
       </CardHeader>
       <CardContent>
