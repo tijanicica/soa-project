@@ -10,6 +10,7 @@ type Blog struct {
 	Title               string    `json:"title"`
 	DescriptionMarkdown string    `json:"descriptionMarkdown"`
 	CreationDate        time.Time `json:"creationDate"`
+	LastModifiedDate    time.Time `json:"lastModifiedDate"`
 	ImageURLs           []string  `json:"imageUrls,omitempty"` // Opcione slike, `omitempty` znači da se neće slati u JSON-u ako je polje prazno
 }
 

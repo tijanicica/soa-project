@@ -186,6 +186,7 @@ func main() {
 	{
 		authRoutes.GET("/blogs", blogHandler.GetAllBlogs)
 		authRoutes.POST("/blogs", blogHandler.CreateBlog)
+		authRoutes.PUT("/blogs/:blogId", blogHandler.UpdateBlog)
 		authRoutes.POST("/blogs/:blogId/comments", blogHandler.AddComment)
 		authRoutes.GET("/blogs/:blogId/comments", blogHandler.GetAllCommentsForBlog)
 		authRoutes.POST("/blogs/:blogId/like", blogHandler.ToggleLike)

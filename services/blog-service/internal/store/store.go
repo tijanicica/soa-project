@@ -36,7 +36,8 @@ func (s *Store) Init() error {
 			author_id INT NOT NULL,
 			title VARCHAR(255) NOT NULL,
 			description_markdown TEXT,
-			creation_date DATETIME NOT NULL
+			creation_date DATETIME NOT NULL,
+			last_modified_date DATETIME NOT NULL
 		);
 	`)
 	if err != nil {
@@ -92,11 +93,10 @@ func (s *Store) Init() error {
 // Seed metoda ubacuje test podatke za blogove
 func (s *Store) Seed() error {
 	// === BLOG 1 ===
-	// Ubacujemo test blog koji je napisao 'vodic_pera' (čiji je ID=2)
 	res, err := s.db.Exec(`
-		REPLACE INTO blogs (id, author_id, title, description_markdown, creation_date) VALUES
-		(1, 2, 'Moja prva tura po Beogradu', 'Ovo je opis moje prve pešačke ture...', ?);
-	`, time.Now())
+		REPLACE INTO blogs (id, author_id, title, description_markdown, creation_date, last_modified_date) VALUES
+		(1, 2, 'Moja prva tura po Beogradu', 'Ovo je opis moje prve pešačke ture...', ?, ?);
+	`, time.Now(), time.Now())
 
 	if err != nil {
 		return fmt.Errorf("error seeding first blog: %w", err)
@@ -127,12 +127,10 @@ func (s *Store) Seed() error {
 	}
 
 	// === BLOG 2 (NOVI) ===
-	// Dodajemo novi blog od korisnika 'turista_mika' (ID=3)
 	res, err = s.db.Exec(`
-		REPLACE INTO blogs (id, author_id, title, description_markdown, creation_date) VALUES
-		(2, 3, 'Saveti za putnike početnike', '### Planiranje je ključ!\n\nEvo nekoliko saveta kako da se pripremite za vaše prvo veliko putovanje.', ?);
-	`, time.Now().Add(-24*time.Hour)) // Kreiran juče
-
+		REPLACE INTO blogs (id, author_id, title, description_markdown, creation_date, last_modified_date) VALUES
+		(2, 3, 'Saveti za putnike početnike', '### Planiranje je ključ!\n\nEvo nekoliko saveta kako da se pripremite za vaše prvo veliko putovanje.', ?, ?);
+	`, time.Now().Add(-24*time.Hour), time.Now().Add(-24*time.Hour))
 	if err != nil {
 		return fmt.Errorf("error seeding second blog: %w", err)
 	}

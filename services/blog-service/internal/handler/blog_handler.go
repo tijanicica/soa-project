@@ -3,6 +3,7 @@ package handler
 import (
 	"blog-service/internal/model"
 	"blog-service/internal/store"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -252,4 +253,62 @@ func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, comments)
+}
+
+type UpdateBlogRequest struct {
+	Title               string `json:"title"`
+	DescriptionMarkdown string `json:"descriptionMarkdown"`
+}
+
+// UpdateBlog sada obrađuje PUT zahtev koji šalje JSON za ažuriranje teksta bloga.
+// Logika za slike je uklonjena iz ove funkcije.
+func (h *BlogHandler) UpdateBlog(c *gin.Context) {
+	// 1. Dobijamo ID bloga iz URL-a
+	blogID, err := strconv.ParseInt(c.Param("blogId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid blog ID"})
+		return
+	}
+
+	// 2. Dobijamo ID ulogovanog korisnika iz tokena
+	userID, _ := c.Get("userID")
+	authorID := userID.(int64)
+
+	// 3. Čitamo podatke iz JSON body-ja i smeštamo ih u našu pomoćnu strukturu
+	var req UpdateBlogRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Ako JSON nije validan, vraćamo grešku
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format: " + err.Error()})
+		return
+	}
+
+	// 4. Proveravamo da li je bar nešto poslato za ažuriranje
+	// Vaša store funkcija je pametna, ali je dobra praksa i ovde imati proveru.
+	if req.Title == "" && req.DescriptionMarkdown == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No data provided for update. Please provide a title or description."})
+		return
+	}
+
+	// 5. Kreiramo Blog model sa podacima za ažuriranje
+	blogToUpdate := &model.Blog{
+		ID:                  blogID,
+		AuthorID:            authorID,  // Za proveru vlasništva
+		Title:               req.Title, // Koristimo podatke iz request objekta
+		DescriptionMarkdown: req.DescriptionMarkdown,
+	}
+
+	// 6. Pozivamo pametnu store funkciju
+	// Prosleđujemo prazan slice za imageUrls i `false` za updateImages jer ovaj endpoint ne menja slike.
+	err = h.store.UpdateBlog(blogToUpdate, []string{}, false)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Blog not found or you do not have permission to edit it"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update blog"})
+		return
+	}
+
+	// 7. Vraćamo poruku o uspehu
+	c.JSON(http.StatusOK, gin.H{"message": "Blog text updated successfully"})
 }
