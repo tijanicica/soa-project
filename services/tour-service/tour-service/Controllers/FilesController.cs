@@ -15,7 +15,7 @@ namespace tour_service.Controllers
         private readonly string _bucketName;
         private readonly string _minioPublicEndpoint;
 
-        public FilesController(IAmazonS3 s3Client, IConfiguration configuratiUpdateKeyPointAsyncon)
+        public FilesController(IAmazonS3 s3Client, IConfiguration configuration)
         {
             _s3Client = s3Client;
             _bucketName = configuration["Minio:BucketName"];
