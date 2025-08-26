@@ -101,7 +101,27 @@ namespace tour_service.Controllers
             return Ok(tours);
         }
 
+        [HttpPut("{tourId:length(24)}/transport-times")]
+        [Authorize(Roles = "guide")]
+        public async Task<IActionResult> UpdateTourTransportTimes(string tourId, [FromBody] List<TransportTime> transportTimes)
+        {
+            var tour = await _tourService.GetTourAsync(tourId);
+            if (tour is null) return NotFound("Tour not found.");
 
+            // Provera autorizacije
+            var authorIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(authorIdString, out long userId) || tour.AuthorId != userId)
+            {
+                return Forbid();
+            }
+
+            var success = await _tourService.UpdateTransportTimesAsync(tourId, transportTimes);
+            if (!success)
+            {
+                return BadRequest("Could not update transport times.");
+            }
+            return NoContent();
+        }
 
         // POST /tours/{tourId}/keypoints
         [HttpPost("{tourId:length(24)}/keypoints")]

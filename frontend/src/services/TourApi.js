@@ -80,3 +80,8 @@ export const updateTourDistance = async (tourId, distance) => {
   const response = await apiClient.put(`/${tourId}/distance`, { distance });
   return response.data;
 };
+
+export const updateTransportTimes = async (tourId, transportTimes) => {
+  const response = await apiClient.put(`/${tourId}/transport-times`, transportTimes);
+  return response.data;
+};

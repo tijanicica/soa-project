@@ -8,13 +8,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { getTourById, updateTour, addKeypointToTour, deleteKeypoint, updateKeypoint, uploadTourImage, updateTourDistance } from "../services/TourApi";
 import { KeypointMap } from "./KeypointMap"; 
 import { KeypointFormDialog } from "./KeypointFormDialog";
-import { Loader2, AlertCircle, CheckCircle, Trash2, Edit } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Trash2, Edit, Timer, Footprints, Bike, Car} from "lucide-react";
+import { TransportTimeDialog } from "./TransportTimeDialog";
+
+const TRANSPORT_ICONS = { 0: <Footprints className="h-4 w-4" />, 1: <Bike className="h-4 w-4" />, 2: <Car className="h-4 w-4" /> };
+
+const TRANSPORT_NAMES = { 0: "Walk", 1: "Bike", 2: "Car" };
+
+
 
 export function EditTourForm() {
   const { tourId } = useParams();
   const [tourData, setTourData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isTimeDialogOpen, setIsTimeDialogOpen] = useState(false); // <-- 2. Novo stanje za dijalog
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -157,6 +166,9 @@ const handleSaveKeypoint = async (keypointData, imageFile) => {
   if (error && !tourData) return <p className="text-red-500">{error}</p>;
   if (!tourData) return <p>Tour not found.</p>;
 
+  const canSetTime = tourData.keyPoints && tourData.keyPoints.length >= 2;
+
+
   return (
     <div className="space-y-8">
       <form onSubmit={handleDetailsSubmit}>
@@ -195,6 +207,44 @@ const handleSaveKeypoint = async (keypointData, imageFile) => {
               {tourData.distanceKm ? tourData.distanceKm.toFixed(2) : '0.00'} km
             </p>
           </div>
+
+
+
+        <div className="border-t pt-4">
+  <Label>Estimated Durations</Label>
+  <div className="flex items-center justify-between mt-2">
+    <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-2">
+        Walk: {tourData.transportTimes?.find(tt => tt.transportType === "Walk")?.durationMinutes ?? "—"} min
+      </div>
+      <div className="flex items-center gap-2">
+        Bike: {tourData.transportTimes?.find(tt => tt.transportType === "Bike")?.durationMinutes ?? "—"} min
+      </div>
+      <div className="flex items-center gap-2">
+        Car: {tourData.transportTimes?.find(tt => tt.transportType === "Car")?.durationMinutes ?? "—"} min
+      </div>
+    </div>
+
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={() => setIsTimeDialogOpen(true)}
+      disabled={!canSetTime}
+    >
+      <Timer className="mr-2 h-4 w-4" />
+      Set Time
+    </Button>
+  </div>
+  {!canSetTime && (
+    <p className="text-xs text-muted-foreground mt-1">
+      Add at least 2 keypoints to set durations.
+    </p>
+  )}
+</div>
+
+
+          
           </CardContent>
           <CardFooter className="flex justify-between items-center border-t pt-4">
             <div className="text-sm h-5">
@@ -259,6 +309,13 @@ const handleSaveKeypoint = async (keypointData, imageFile) => {
         keypointToEdit={editingKeypoint}
       />
 
+
+<TransportTimeDialog
+        open={isTimeDialogOpen}
+        onOpenChange={setIsTimeDialogOpen}
+        tour={tourData}
+        onSaveSuccess={fetchTourData}
+      />
     </div>
   );
 }
