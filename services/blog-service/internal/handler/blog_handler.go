@@ -4,6 +4,7 @@ import (
 	"blog-service/internal/model"
 	"blog-service/internal/store"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,7 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-// AppClaims je identična struktura kao u stakeholders-service
 type AppClaims struct {
 	Role string `json:"role"`
 	jwt.RegisteredClaims
@@ -36,13 +36,19 @@ func init() {
 	jwtKey = []byte(key)
 }
 
-// BlogHandler sadrži zavisnosti, kao što je konekcija ka bazi.
 type BlogHandler struct {
 	store    *store.Store
 	s3Client *s3.S3
 }
 
-// konstruktor
+// za komunikaciju sa stakeholders, ime usera  na blogu
+type UserInfo struct {
+	ID              int64          `json:"id"`
+	Username        string         `json:"username"`
+	FirstName       sql.NullString `json:"firstName"`
+	ProfileImageURL sql.NullString `json:"profileImageUrl"`
+}
+
 func NewBlogHandler(store *store.Store, s3Client *s3.S3) *BlogHandler {
 	return &BlogHandler{store: store, s3Client: s3Client}
 }
@@ -87,7 +93,6 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-// Funkcionalnost #6: Korisnik može da kreira blog
 func (h *BlogHandler) CreateBlog(c *gin.Context) {
 	// 1. Parsiranje tekstualnih polja iz forme
 	title := c.PostForm("title")
@@ -174,7 +179,6 @@ func (h *BlogHandler) AddComment(c *gin.Context) {
 		return
 	}
 
-	// Autor komentara je ulogovani korisnik
 	userID, _ := c.Get("userID")
 	comment.AuthorID = userID.(int64)
 	comment.BlogID = blogID
@@ -187,7 +191,34 @@ func (h *BlogHandler) AddComment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, createdComment)
+	// --- POČETAK NOVE LOGIKE ---
+	// Nakon kreiranja, odmah dobavi info o autoru da bi ga vratio frontendu
+	url := fmt.Sprintf("http://stakeholders-service:8001/users/batch?ids=%d", createdComment.AuthorID)
+	resp, err := http.Get(url)
+	authorsInfo := make(map[int64]UserInfo)
+	if err == nil && resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+		json.NewDecoder(resp.Body).Decode(&authorsInfo)
+	}
+
+	commentWithAuthor := &model.CommentWithAuthor{
+		Comment: *createdComment,
+	}
+
+	if author, ok := authorsInfo[createdComment.AuthorID]; ok {
+		commentWithAuthor.Author.Username = author.Username
+		if author.FirstName.Valid {
+			commentWithAuthor.Author.FirstName = author.FirstName.String
+		}
+		if author.ProfileImageURL.Valid {
+			commentWithAuthor.Author.ProfileImageURL = author.ProfileImageURL.String
+		}
+	} else {
+		commentWithAuthor.Author.Username = "You"
+	}
+	// --- KRAJ NOVE LOGIKE ---
+
+	c.JSON(http.StatusCreated, commentWithAuthor) // Vraćamo obogaćeni objekat
 }
 
 // Funkcionalnost #8: Korisnik može da lajkuje/dislajkuje blog
@@ -227,13 +258,59 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 		return
 	}
 
-	if blogs == nil {
-		blogs = []*model.BlogWithStats{}
+	if len(blogs) == 0 {
+		c.JSON(http.StatusOK, []*model.BlogWithStats{})
+		return
+	}
+
+	// 2. Sakupi sve jedinstvene author ID-jeve
+	authorIDs := make(map[int64]bool)
+	for _, blog := range blogs {
+		authorIDs[blog.AuthorID] = true
+	}
+
+	var ids []string
+	for id := range authorIDs {
+		ids = append(ids, strconv.FormatInt(id, 10))
+	}
+
+	// 3. Pozovi stakeholders-service da dobiješ informacije o autorima
+	// Unutar Docker mreže, koristimo ime servisa kao hostname.
+	url := fmt.Sprintf("http://stakeholders-service:8001/users/batch?ids=%s", strings.Join(ids, ","))
+
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Error fetching user data from stakeholders-service: %v", err)
+		// U slučaju greške, možemo vratiti blogove bez info o autoru
+		// ili vratiti grešku. Za sada ćemo nastaviti.
+	}
+
+	authorsInfo := make(map[int64]UserInfo)
+	if resp != nil && resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+		if err := json.NewDecoder(resp.Body).Decode(&authorsInfo); err != nil {
+			log.Printf("Error decoding user data: %v", err)
+		}
+	}
+
+	// 4. Spoji informacije o autorima sa blogovima
+	for _, blog := range blogs {
+		if author, ok := authorsInfo[blog.AuthorID]; ok {
+			blog.Author.Username = author.Username
+			if author.FirstName.Valid {
+				blog.Author.FirstName = author.FirstName.String
+			}
+			if author.ProfileImageURL.Valid {
+				blog.Author.ProfileImageURL = author.ProfileImageURL.String
+			}
+		} else {
+			// Fallback ako autor nije pronađen
+			blog.Author.Username = "Unknown Author"
+		}
 	}
 
 	c.JSON(http.StatusOK, blogs)
 }
-
 func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
 	blogID, err := strconv.ParseInt(c.Param("blogId"), 10, 64)
 	if err != nil {
@@ -241,26 +318,74 @@ func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
 		return
 	}
 
+	// 1. Dobavi osnovne podatke o komentarima iz baze
 	comments, err := h.store.GetCommentsForBlog(blogID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comments"})
 		return
 	}
 
-	// Osiguravamo da se vrati prazan niz `[]` umesto `null` ako nema komentara
-	if comments == nil {
-		comments = []*model.Comment{}
+	if len(comments) == 0 {
+		c.JSON(http.StatusOK, []*model.CommentWithAuthor{})
+		return
 	}
 
-	c.JSON(http.StatusOK, comments)
+	// 2. Sakupi sve jedinstvene author ID-jeve iz komentara
+	authorIDs := make(map[int64]bool)
+	for _, comment := range comments {
+		authorIDs[comment.AuthorID] = true
+	}
+
+	var ids []string
+	for id := range authorIDs {
+		ids = append(ids, strconv.FormatInt(id, 10))
+	}
+
+	// 3. Pozovi stakeholders-service da dobiješ informacije o autorima
+	url := fmt.Sprintf("http://stakeholders-service:8001/users/batch?ids=%s", strings.Join(ids, ","))
+
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Error fetching user data for comments from stakeholders-service: %v", err)
+	}
+
+	authorsInfo := make(map[int64]UserInfo)
+	if resp != nil && resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+		if err := json.NewDecoder(resp.Body).Decode(&authorsInfo); err != nil {
+			log.Printf("Error decoding user data for comments: %v", err)
+		}
+	}
+
+	// 4. Kreiraj novu listu (slice) sa obogaćenim podacima
+	var commentsWithAuthors []*model.CommentWithAuthor
+	for _, comment := range comments {
+		cwa := &model.CommentWithAuthor{
+			Comment: *comment,
+		}
+
+		if author, ok := authorsInfo[comment.AuthorID]; ok {
+			cwa.Author.Username = author.Username
+			if author.FirstName.Valid {
+				cwa.Author.FirstName = author.FirstName.String
+			}
+			if author.ProfileImageURL.Valid {
+				cwa.Author.ProfileImageURL = author.ProfileImageURL.String
+			}
+		} else {
+			cwa.Author.Username = "Unknown User"
+		}
+
+		commentsWithAuthors = append(commentsWithAuthors, cwa)
+	}
+
+	c.JSON(http.StatusOK, commentsWithAuthors)
 }
 
 type UpdateBlogRequest struct {
 	Title               string `json:"title"`
 	DescriptionMarkdown string `json:"descriptionMarkdown"`
 }
-
-// U blog-service/internal/handler/handler.go
 
 func (h *BlogHandler) UpdateBlog(c *gin.Context) {
 	blogID, err := strconv.ParseInt(c.Param("blogId"), 10, 64)
@@ -275,8 +400,6 @@ func (h *BlogHandler) UpdateBlog(c *gin.Context) {
 	// Čitamo tekstualna polja. Ako nisu poslata, biće prazni stringovi.
 	title := c.PostForm("title")
 	descriptionMarkdown := c.PostForm("descriptionMarkdown")
-
-	// === NOVA LOGIKA ZA SLIKE ===
 
 	// Čitamo listu postojećih slika koje treba obrisati.
 	// Frontend će ih slati kao niz, npr. imagesToDelete=url1&imagesToDelete=url2

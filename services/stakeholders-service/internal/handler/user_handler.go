@@ -358,12 +358,14 @@ func (h *UserHandler) UnblockUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User unblocked successfully"})
 }
 
+
 type PositionDto struct {
 	Latitude  float64 `json:"latitude" binding:"required"`
 	Longitude float64 `json:"longitude" binding:"required"`
 }
 
-// 👇 DODAJTE OVAJ NOVI HANDLER NA KRAJ FAJLA
+
+
 func (h *UserHandler) UpdatePosition(c *gin.Context) {
 	userIDValue, exists := c.Get("userID")
 	if !exists {
@@ -395,7 +397,6 @@ func (h *UserHandler) GetPosition(c *gin.Context) {
 	}
 	userID := userIDValue.(int64)
 
-	// 👇 ZAMENITE POZIV GetUserByID SA GetPosition 👇
 	lat, lon, err := h.store.GetPosition(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error while fetching position"})
@@ -406,4 +407,33 @@ func (h *UserHandler) GetPosition(c *gin.Context) {
 		"latitude":  lat,
 		"longitude": lon,
 	})
+}
+  
+  
+func (h *UserHandler) GetUsersBatch(c *gin.Context) {
+	// Očekujemo ID-jeve kao comma-separated string, npr. /users/batch?ids=1,2,3
+	idsStr := c.Query("ids")
+	if idsStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User IDs are required"})
+		return
+	}
+
+	idStrs := strings.Split(idsStr, ",")
+	var userIDs []int64
+	for _, idStr := range idStrs {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+			return
+		}
+		userIDs = append(userIDs, id)
+	}
+
+	usersInfo, err := h.store.GetUsersInfoByIDs(userIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user information"})
+		return
+	}
+
+	c.JSON(http.StatusOK, usersInfo)
 }
