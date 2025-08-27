@@ -86,4 +86,22 @@ public class FollowersController : ControllerBase
         var isFollowing = await _followerService.IsFollowingAsync(currentUserId, followedId);
         return Ok(new { isFollowing });
     }
+    
+    // GET /api/followers/me/followers
+    [HttpGet("me/followers")]
+    public async Task<IActionResult> GetMyFollowers()
+    {
+        var currentUserId = GetCurrentUserId();
+        var followers = await _followerService.GetFollowersAsync(currentUserId);
+        return Ok(followers);
+    }
+    
+    // GET /api/followers/{userId}/followers
+    [HttpGet("{userId}/followers")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetUserFollowers(long userId)
+    {
+        var followers = await _followerService.GetFollowersAsync(userId);
+        return Ok(followers);
+    }
 }
