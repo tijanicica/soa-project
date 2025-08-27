@@ -28,3 +28,11 @@ type Profile struct {
 	Biography       sql.NullString `json:"biography"`       // Može biti NULL
 	Motto           sql.NullString `json:"motto"`           // Može biti NULL
 }
+
+// za prikaz na blogu
+type UserInfo struct {
+	ID              int64          `json:"id"`
+	Username        string         `json:"username"`
+	FirstName       sql.NullString `json:"firstName"`
+	ProfileImageURL sql.NullString `json:"profileImageUrl"`
+}

@@ -357,3 +357,31 @@ func (h *UserHandler) UnblockUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User unblocked successfully"})
 }
+
+func (h *UserHandler) GetUsersBatch(c *gin.Context) {
+	// Očekujemo ID-jeve kao comma-separated string, npr. /users/batch?ids=1,2,3
+	idsStr := c.Query("ids")
+	if idsStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User IDs are required"})
+		return
+	}
+
+	idStrs := strings.Split(idsStr, ",")
+	var userIDs []int64
+	for _, idStr := range idStrs {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+			return
+		}
+		userIDs = append(userIDs, id)
+	}
+
+	usersInfo, err := h.store.GetUsersInfoByIDs(userIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user information"})
+		return
+	}
+
+	c.JSON(http.StatusOK, usersInfo)
+}
