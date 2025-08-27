@@ -35,13 +35,6 @@ builder.Services.AddSingleton<TourService>(sp =>
     return new TourService(client, dbName);
 });
 
-builder.Services.AddSingleton<PositionService>(sp =>
-{
-    var client = sp.GetRequiredService<IMongoClient>();
-    var dbName = databaseSettings["DatabaseName"];
-    return new PositionService(client, dbName);
-});
-
 
 builder.Services.AddSingleton<IAmazonS3>(sp => {
     var config = sp.GetRequiredService<IConfiguration>();
