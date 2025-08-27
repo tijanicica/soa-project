@@ -17,8 +17,8 @@ import { Heart, MessageSquare, Send, Loader2, Edit, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "date-fns";
 import { getCommentsForBlog } from "../services/BlogApi";
-import { jwtDecode } from 'jwt-decode';
-import { EditBlogDialog } from './EditBlogDialog'; 
+import { jwtDecode } from "jwt-decode";
+import { EditBlogDialog } from "./EditBlogDialog";
 
 // New Carousel imports
 import {
@@ -31,21 +31,45 @@ import {
 
 // --- NEW HELPER COMPONENT: Avatar ---
 // A simple avatar to show the first letter of the author's name (or just 'U' for 'User').
-const Avatar = ({ authorId }) => (
-  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 flex-shrink-0">
-    U
-  </div>
-);
+const Avatar = ({ author }) => {
+  const initial = author.firstName
+    ? author.firstName[0]
+    : author.username
+    ? author.username[0]
+    : "U";
 
-// --- RESTYLED COMPONENT: Comment ---
+  return (
+    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0">
+      {author.profileImageUrl ? (
+        <img
+          src={author.profileImageUrl}
+          alt={author.username}
+          className="h-full w-full object-cover rounded-full"
+        />
+      ) : (
+        <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+          {initial.toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+};
+
 const Comment = ({ comment }) => (
   <div className="flex items-start gap-3 py-3 border-b border-border last:border-b-0">
-    <Avatar authorId={comment.authorId} />
+    {/* Sada prosleđujemo ceo 'author' objekat koji smo dobili sa backenda */}
+    <Avatar author={comment.author} />
     <div className="flex-1">
       <div className="flex items-center gap-2 text-sm">
-        <p className="font-semibold">User {comment.authorId}</p>
+        {/* Prikazujemo ime ili username, isto kao za autora bloga */}
+        <p className="font-semibold">
+          {comment.author.firstName || comment.author.username}
+        </p>
         <p className="text-xs text-muted-foreground">
-          • {formatDistanceToNow(new Date(comment.creationTime), { addSuffix: true })}
+          •{" "}
+          {formatDistanceToNow(new Date(comment.creationTime), {
+            addSuffix: true,
+          })}
         </p>
       </div>
       <p className="text-muted-foreground mt-1">{comment.text}</p>
@@ -61,10 +85,12 @@ export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
   const [areCommentsVisible, setAreCommentsVisible] = useState(false);
 
   // ===== Nova Logika: Provera vlasništva bloga =====
-  const token = localStorage.getItem('jwtToken');
+  const token = localStorage.getItem("jwtToken");
   const currentUser = token ? jwtDecode(token) : null;
   const isOwner = currentUser && currentUser.sub == blog.authorId;
-   const wasEdited = new Date(blog.lastModifiedDate).getTime() > new Date(blog.creationDate).getTime() + 1000;
+  const wasEdited =
+    new Date(blog.lastModifiedDate).getTime() >
+    new Date(blog.creationDate).getTime() + 1000;
 
   // Funkcije handleCommentSubmit i fetchComments ostaju iste
   const handleCommentSubmit = async (e) => {
@@ -74,7 +100,7 @@ export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
     try {
       const newComment = await onAddComment(blog.id, commentText);
       if (newComment) {
-        setComments(prevComments => [newComment, ...prevComments]);
+        setComments((prevComments) => [newComment, ...prevComments]);
       }
     } finally {
       setCommentText("");
@@ -129,46 +155,62 @@ export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
 
         {/* ===== Novi Deo: Flex kontejner za naslov i Edit dugme ===== */}
         <div className="flex justify-between items-start gap-4">
-            <CardTitle className="text-2xl font-bold">{blog.title}</CardTitle>
-            
-            {/* "Edit" dugme se prikazuje samo ako je korisnik vlasnik */}
-           {isOwner && (
-    // ===== POČETAK IZMENE =====
-                <div onClick={() => console.log("Opening edit dialog for Post ID:", blog.id)}>
-                    <EditBlogDialog 
-                    blog={blog} 
-                    onBlogUpdated={onBlogUpdated}
-                    trigger={
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 rounded-full flex-shrink-0"
-                            // Uklonili smo onClick odavde
-                        >
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                    }
-                    />
-                </div>
-            )}
-        </div>
-        
-       <p className="text-sm text-muted-foreground flex items-center flex-wrap">
-          <span>Posted by User {blog.authorId}</span>
-          <span className="mx-1.5">•</span>
-          <span>{formatDistanceToNow(new Date(blog.creationDate), { addSuffix: true })}</span>
-          
-          {/* Uslovno prikazujemo "edited" poruku */}
-          {wasEdited && (
-            <>
-              <span className="mx-1.5">•</span>
-              <span className="flex items-center text-xs italic opacity-75">
-                edited {formatDistanceToNow(new Date(blog.lastModifiedDate), { addSuffix: true })}
-                <Clock className="h-3 w-3 ml-1" />
-              </span>
-            </>
+          <CardTitle className="text-2xl font-bold">{blog.title}</CardTitle>
+
+          {/* "Edit" dugme se prikazuje samo ako je korisnik vlasnik */}
+          {isOwner && (
+            // ===== POČETAK IZMENE =====
+            <div
+              onClick={() =>
+                console.log("Opening edit dialog for Post ID:", blog.id)
+              }
+            >
+              <EditBlogDialog
+                blog={blog}
+                onBlogUpdated={onBlogUpdated}
+                trigger={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full flex-shrink-0"
+                    // Uklonili smo onClick odavde
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                }
+              />
+            </div>
           )}
-        </p>
+        </div>
+
+        <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+          <Avatar author={blog.author} />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5 flex-wrap">
+            <span className="font-semibold text-foreground">
+              {blog.author.firstName || blog.author.username}
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span>
+              {formatDistanceToNow(new Date(blog.creationDate), {
+                addSuffix: true,
+              })}
+            </span>
+
+            {/* Uslovno prikazujemo "edited" poruku */}
+            {wasEdited && (
+              <>
+                <span className="mx-1.5">•</span>
+                <span className="flex items-center text-xs italic opacity-75">
+                  edited{" "}
+                  {formatDistanceToNow(new Date(blog.lastModifiedDate), {
+                    addSuffix: true,
+                  })}
+                  <Clock className="h-3 w-3 ml-1" />
+                </span>
+              </>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="prose dark:prose-invert max-w-none">
@@ -202,11 +244,14 @@ export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
               </Button>
             </CollapsibleTrigger>
           </div>
-          
+
           <CollapsibleContent className="w-full pt-4">
             <div className="space-y-4 rounded-lg bg-muted p-4">
               <h4 className="font-semibold text-base">Comments</h4>
-              <form onSubmit={handleCommentSubmit} className="flex gap-2 w-full">
+              <form
+                onSubmit={handleCommentSubmit}
+                className="flex gap-2 w-full"
+              >
                 <Textarea
                   placeholder="Write a comment..."
                   value={commentText}
@@ -215,7 +260,11 @@ export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
                   rows={1}
                 />
                 <Button type="submit" size="icon" disabled={isCommenting}>
-                  {isCommenting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {isCommenting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </form>
 
@@ -229,7 +278,9 @@ export function BlogCard({ blog, onLikeToggle, onAddComment, onBlogUpdated }) {
                     <Comment key={comment.id} comment={comment} />
                   ))
                 ) : (
-                  <p className="text-sm text-center text-muted-foreground py-4">Be the first to comment!</p>
+                  <p className="text-sm text-center text-muted-foreground py-4">
+                    Be the first to comment!
+                  </p>
                 )}
               </div>
             </div>

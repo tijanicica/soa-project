@@ -108,7 +108,7 @@ func (s *Store) GetLikesCount(blogID int64) (int, error) {
 		return 0, err
 	}
 	return count, nil
-} // U blog-service/internal/store/store.go
+}
 
 func (s *Store) GetAllBlogs() ([]*model.BlogWithStats, error) {
 	// 1. IZMENA: Dodali smo `b.last_modified_date` u SELECT listu
@@ -145,7 +145,6 @@ func (s *Store) GetAllBlogs() ([]*model.BlogWithStats, error) {
 		bws := &model.BlogWithStats{}
 		var imageUrlsStr string
 
-		// 2. IZMENA: Dodali smo `&bws.Blog.LastModifiedDate` u Scan
 		err := rows.Scan(
 			&bws.Blog.ID,
 			&bws.Blog.AuthorID,

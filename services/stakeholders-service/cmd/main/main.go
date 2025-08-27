@@ -134,6 +134,7 @@ func main() {
 
 	router.POST("/register", userHandler.Register)
 	router.POST("/login", userHandler.Login)
+	router.GET("/users/batch", userHandler.GetUsersBatch)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})
 	})
