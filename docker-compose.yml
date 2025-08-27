@@ -36,6 +36,8 @@ services:
         condition: service_healthy
       followers-service:
         condition: service_healthy
+      purchase-service: 
+        condition: service_healthy
 
   minio:
     image: minio/minio:latest
@@ -176,6 +178,31 @@ services:
       eureka-server:
         condition: service_healthy
 
+  purchase-service:
+    build:
+      context: ./services/purchase-service
+    environment:
+      - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
+      - ASPNETCORE_URLS=http://+:8005
+      - ConnectionStrings__PurchaseDatabase=Server=purchase-db;Database=purchase_db;User=user;Password=password;
+      - JwtKey=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
+      - Services__TourServiceAddress=http://tour-service:8003
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"] 
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      purchase-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      tour-service:
+        condition: service_healthy
+
   # 5. Frontend
   frontend:
     build:
@@ -268,6 +295,28 @@ services:
       retries: 5
       start_period: 30s
 
+
+  purchase-db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "root_password"
+      MYSQL_DATABASE: "purchase_db"
+      MYSQL_USER: "user"
+      MYSQL_PASSWORD: "password"
+    ports:
+      - "3309:3306"
+    volumes:
+      - purchase-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
 networks:
   app-network:
     driver: bridge
@@ -278,3 +327,4 @@ volumes:
   minio-data:
   mongo-data:
   neo4j-data:
+  purchase-data:
