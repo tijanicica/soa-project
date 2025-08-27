@@ -1,6 +1,6 @@
 import React, { createContext, useReducer, useContext, useEffect } from 'react';
 import { getCart, addToCart, removeFromCart, checkout } from '../services/PurchaseApi';
-import { useAuth } from '../hooks/useAuth'; // Da znamo da li je korisnik ulogovan
+import { useAuth } from '../hooks/useAuth';
 
 // 1. Kreiramo Context
 const CartContext = createContext();
@@ -12,7 +12,7 @@ const ACTIONS = {
   SET_ERROR: 'set-error',
 };
 
-// 3. Reducer - funkcija koja upravlja promenama stanja
+// 3. Reducer - funkcija koja upravlja promenama stanja (ostaje ista)
 function cartReducer(state, action) {
   switch (action.type) {
     case ACTIONS.SET_CART:
@@ -35,7 +35,7 @@ export function CartProvider({ children }) {
     error: null,
   });
 
-  // Funkcija za dohvatanje korpe sa servera
+  // Funkcija za dohvatanje korpe sa servera (ostaje ista)
   const fetchCart = async () => {
     dispatch({ type: ACTIONS.SET_LOADING });
     try {
@@ -46,21 +46,33 @@ export function CartProvider({ children }) {
     }
   };
 
-  // Učitaj korpu kada se korisnik uloguje
+  // useEffect za učitavanje korpe (ostaje isti)
   useEffect(() => {
     if (isAuthenticated) {
       fetchCart();
     } else {
-      // Ako se korisnik izloguje, resetuj korpu
       dispatch({ type: ACTIONS.SET_CART, payload: { items: [], totalPrice: 0 } });
     }
   }, [isAuthenticated]);
 
+  // --- POČETAK ISPRAVKE ---
+
   // Funkcije koje će komponente koristiti za interakciju
   const addItemToCart = async (tourId) => {
     try {
-      await addToCart(tourId);
-      await fetchCart(); // Osveži stanje iz baze
+      // API poziv vraća ceo ShoppingCart objekat, a ne formatirani { items, totalPrice }
+      const response = await addToCart(tourId); 
+      
+      // Ručno formatiramo odgovor da odgovara onome što očekujemo
+      const updatedCartData = response.data;
+      const formattedCart = {
+          items: updatedCartData.items,
+          totalPrice: updatedCartData.items.reduce((sum, item) => sum + item.price, 0)
+      };
+      
+      // Ažuriramo stanje sa ispravno formatiranim podacima
+      dispatch({ type: ACTIONS.SET_CART, payload: formattedCart });
+
       return { success: true };
     } catch (error) {
       return { success: false, error: error.response?.data || error.message };
@@ -69,8 +81,15 @@ export function CartProvider({ children }) {
 
   const removeItemFromCart = async (tourId) => {
      try {
-      await removeFromCart(tourId);
-      await fetchCart();
+      // Ista logika kao za dodavanje
+      const response = await removeFromCart(tourId);
+      const updatedCartData = response.data;
+      const formattedCart = {
+          items: updatedCartData.items,
+          totalPrice: updatedCartData.items.reduce((sum, item) => sum + item.price, 0)
+      };
+      dispatch({ type: ACTIONS.SET_CART, payload: formattedCart });
+      
       return { success: true };
     } catch (error) {
       return { success: false, error: error.response?.data || error.message };
@@ -80,14 +99,18 @@ export function CartProvider({ children }) {
   const checkoutCart = async () => {
     try {
       await checkout();
-      await fetchCart();
+      // Nakon checkout-a, korpa je prazna, pa samo ponovo dohvatimo stanje
+      await fetchCart(); 
       return { success: true };
     } catch (error) {
       return { success: false, error: error.response?.data || error.message };
     }
   };
 
-  // Vrednosti koje pružamo celoj aplikaciji
+  // --- KRAJ ISPRAVKE ---
+
+
+  // Vrednosti koje pružamo celoj aplikaciji (ostaje isto)
   const value = {
     cart: state.cart,
     cartItemCount: state.cart?.items?.length || 0,
@@ -101,7 +124,7 @@ export function CartProvider({ children }) {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
-// 5. Custom Hook - olakšava korišćenje konteksta
+// 5. Custom Hook - olakšava korišćenje konteksta (ostaje isti)
 export function useCart() {
   const context = useContext(CartContext);
   if (context === undefined) {

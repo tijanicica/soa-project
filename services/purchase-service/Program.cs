@@ -5,6 +5,7 @@ using purchase_service.Data;
 using Steeltoe.Discovery.Client;
 using System.Text;
 using System.Text.Json.Serialization;
+using purchase_service.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +55,8 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = false,
     };
 });
+
+builder.Services.AddScoped<PurchaseService>();
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers()
