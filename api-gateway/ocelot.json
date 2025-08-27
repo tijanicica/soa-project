@@ -1,6 +1,19 @@
 {
   "Routes": [
 
+        {
+      "UpstreamPathTemplate": "/purchase/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "DELETE", "PUT", "OPTIONS" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "purchase-service",
+          "Port": 8005
+        }
+      ],
+      "DownstreamPathTemplate": "/purchase/{everything}"
+    },
+
     {
       "UpstreamPathTemplate": "/stakeholders/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
@@ -39,6 +52,8 @@
       ],
       "DownstreamPathTemplate": "/{everything}"
     },
+    
+    
 
     {
       "UpstreamPathTemplate": "/tours/{everything}",

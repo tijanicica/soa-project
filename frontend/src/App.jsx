@@ -18,6 +18,10 @@ import { MyToursPage } from "./pages/MyToursPage";
 import { PositionSimulatorPage } from "./pages/PositionSimulatorPage";
 import { CommunityPage } from "./pages/CommunityPage";
 import { FollowingPage } from "./pages/FollowingPage";
+import { CartProvider } from "./contex/CartContex"; // NOVO
+
+
+import { MyPurchasedToursPage } from "./pages/MyPurchasedToursPage"; 
 // Pomoćna komponenta za preusmeravanje ulogovanih korisnika sa "/" putanje
 function RedirectIfLoggedIn() {
   const { auth } = useAuth();
@@ -69,6 +73,7 @@ function AppContent() {
         <Route path="/network" element={<FollowingPage />} />
         <Route path="/tourist/profile" element={<TouristProfilePage />} />
         <Route path="/simulator" element={<PositionSimulatorPage />} />
+         <Route path="/my-tours" element={<MyPurchasedToursPage />} />
       </Route>
 
       {/* Glavna ruta "/" preusmerava na osnovu uloge ili na login */}
@@ -84,7 +89,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppContent />
+         <CartProvider>
+          <AppContent />
+        </CartProvider>
       </AuthProvider>
     </BrowserRouter>
   );
