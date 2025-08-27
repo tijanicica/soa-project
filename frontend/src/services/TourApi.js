@@ -101,16 +101,32 @@ export const reactivateTour = async (tourId) => {
   return response.data;
 };
 
-export const updateTouristPosition = async (locationData) => {
-  const response = await apiClient.put('/position', locationData);
+export const getPublishedTours = async () => {
+  const response = await apiClient.get('/published');
   return response.data;
 };
 
-
-export const getTouristPosition = async () => {
-  const response = await apiClient.get('/position');
+export const addItemToCart = async (tourId) => {
+  const response = await apiClient.post(`/shoppingcart/items/${tourId}`);
+  return response.data;
 };
-export const getPublishedTours = async () => {
-  const response = await apiClient.get('/published');
+
+export const getCart = async () => {
+  const response = await apiClient.get('/shoppingcart');
+  return response.data;
+};
+
+export const checkout = async () => {
+  const response = await apiClient.post('/shoppingcart/checkout');
+  return response.data; 
+};
+
+export const getPurchasedTours = async () => {
+  const response = await apiClient.get('/purchased');
+  return response.data;
+};
+
+export const removeItemFromCart = async (tourId) => {
+  const response = await apiClient.delete(`/shoppingcart/items/${tourId}`);
   return response.data;
 };

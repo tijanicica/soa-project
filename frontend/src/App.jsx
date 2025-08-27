@@ -17,6 +17,13 @@ import { CreateTourPage } from './pages/CreateTourPage';
 import { EditTourPage } from './pages/EditTourPage'; 
 import { MyToursPage } from './pages/MyToursPage';
 import { PositionSimulatorPage } from "./pages/PositionSimulatorPage";
+import { MyPurchasedToursPage } from './pages/MyPurchasedToursPage';
+
+import { CartProvider,useCart } from "./contexts/CartContex"; // Ispravljeno ime fajla
+import { ShoppingCartDrawer } from './components/ShoppingCartDrawer';
+import { Toaster } from 'react-hot-toast';
+
+
 
 // Pomoćna komponenta za preusmeravanje ulogovanih korisnika sa "/" putanje
 function RedirectIfLoggedIn() {
@@ -39,11 +46,13 @@ function RedirectIfLoggedIn() {
 function AppContent() {
   const { auth } = useAuth();
 
+  const { isCartOpen, closeCart, cart, isLoading: isCartLoading, handleCheckout,handleRemoveItem  } = useCart();
   if (auth.isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
+    <>
     <Routes>
       {/* Login i Register su sada uvek dostupne rute */}
       <Route path="/login" element={<LoginPage />} />
@@ -67,6 +76,7 @@ function AppContent() {
         <Route path="/blogs" element={<BlogPage />} />
         <Route path="/tourist/profile" element={<TouristProfilePage />} />
         <Route path="/simulator" element={< PositionSimulatorPage/>} />
+        <Route path="/my-purchased-tours" element={<MyPurchasedToursPage />} />
 
       </Route>
 
@@ -76,14 +86,29 @@ function AppContent() {
       {/* Hvatanje svih nepostojećih ruta */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+
+    <ShoppingCartDrawer
+        isOpen={isCartOpen}
+        onClose={closeCart}
+        cart={cart}
+        isLoading={isCartLoading}
+        onCheckout={handleCheckout}
+        onRemoveItem={handleRemoveItem}
+      />
+      
+      <Toaster position="bottom-center" />
+    </>
+
   );
 }
 
 function App() {
   return (
-    <BrowserRouter>
+   <BrowserRouter>
       <AuthProvider>
-        <AppContent />
+        <CartProvider>
+          <AppContent />
+        </CartProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -35,6 +35,18 @@ builder.Services.AddSingleton<TourService>(sp =>
     return new TourService(client, dbName);
 });
 
+builder.Services.AddSingleton<TourService>(sp =>
+{
+    var mongoClient = sp.GetRequiredService<IMongoClient>();
+    return new TourService(mongoClient, "ime-vase-baze");
+});
+
+builder.Services.AddSingleton<ShoppingCartService>(sp =>
+{
+    var mongoClient = sp.GetRequiredService<IMongoClient>();
+    return new ShoppingCartService(mongoClient, "ime-vase-baze");
+});
+
 
 builder.Services.AddSingleton<IAmazonS3>(sp => {
     var config = sp.GetRequiredService<IConfiguration>();

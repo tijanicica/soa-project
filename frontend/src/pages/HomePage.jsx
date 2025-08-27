@@ -3,13 +3,25 @@ import { TouristNavbar } from "../components/TouristNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MapPin, Tag, BarChart3, Coins, Loader2 } from "lucide-react";
-import { getPublishedTours } from "../services/TourApi"; // <-- Uvozimo novu funkciju
+import { MapPin, BarChart3, Coins, Loader2, ShoppingCart } from "lucide-react";
+import toast from "react-hot-toast";
+
+
+import { getPublishedTours, addItemToCart } from "../services/TourApi"; 
+import { useCart } from "@/contexts/CartContex";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 export function HomePage() {
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [addingToCart, setAddingToCart] = useState(null);
+
+  const { auth } = useAuth();
+  const { refetchCart } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -25,6 +37,28 @@ export function HomePage() {
     };
     fetchTours();
   }, []);
+
+   const handleAddToCart = async (tourId) => {
+    // Proveravamo da li je korisnik ulogovan (uloga turista)
+    if (!auth.user || auth.user.role !== 'tourist') {
+      toast.error("You must be logged in as a tourist to add items.");
+      navigate('/login'); // Opciono, preusmeri na login
+      return;
+    }
+
+    setAddingToCart(tourId); // Postavljamo ID ture koja se dodaje za prikaz loadera
+    try {
+      await addItemToCart(tourId);
+      toast.success("Tour added to cart!");
+      await refetchCart(); // KLJUČNI DEO: Osvežavamo podatke u korpi!
+    } catch (err) {
+      const errorMessage = err.response?.data || "Could not add tour to cart.";
+      toast.error(errorMessage);
+      console.error(err);
+    } finally {
+      setAddingToCart(null); // Resetujemo stanje bez obzira na ishod
+    }
+  };
 
  return (
     <div className="min-h-screen w-full bg-slate-50">
@@ -88,6 +122,21 @@ export function HomePage() {
                             <span>Starts at: <strong>{tour.firstKeyPointName}</strong></span>
                           </div>
                        )}
+                    </div>
+
+                       <div className="mt-6">
+                      <Button 
+                        onClick={() => handleAddToCart(tour.id)}
+                        className="w-full bg-cyan-600 hover:bg-cyan-700"
+                        disabled={addingToCart === tour.id}
+                      >
+                        {addingToCart === tour.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                        )}
+                        Add to Cart
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using tour_service.Models;
@@ -13,9 +13,12 @@ namespace tour_service.Controllers
     {
         private readonly TourService _tourService;
 
-        public ToursController(TourService tourService)
+        private readonly ShoppingCartService _shoppingCartService;
+
+        public ToursController(TourService tourService, ShoppingCartService shoppingCartService)
         {
             _tourService = tourService;
+            _shoppingCartService = shoppingCartService;
         }
 
         // POST /tours
@@ -186,7 +189,7 @@ namespace tour_service.Controllers
         }
 
         [HttpGet("published")]
-        [AllowAnonymous] // Eksplicitno ka�emo da ne treba autorizacija
+        [AllowAnonymous] // Eksplicitno kažemo da ne treba autorizacija
         public async Task<ActionResult<List<PublishedTourDto>>> GetPublishedTours()
         {
             var tours = await _tourService.GetAllPublishedToursAsync();
@@ -301,5 +304,23 @@ namespace tour_service.Controllers
             }
             return NoContent();
         }
+
+        [HttpGet("purchased")]
+        [Authorize(Roles = "tourist")] // Samo turisti mogu da vide svoje kupljene ture
+        public async Task<ActionResult<List<Tour>>> GetPurchasedTours()
+        {
+            var touristIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(touristIdString, out long touristId))
+            {
+                return Unauthorized("Invalid token: User ID is missing.");
+            }
+
+            // Pozivamo metodu iz ShoppingCartService-a koja vraća pune objekte tura
+            var tours = await _shoppingCartService.GetPurchasedToursAsync(touristId);
+
+            // Vraćamo listu tura sa svim detaljima (uključujući sve ključne tačke)
+            return Ok(tours);
+        }
+
     }
 }
