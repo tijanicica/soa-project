@@ -9,12 +9,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Store struktura je ista kao i u drugom servisu
 type Store struct {
 	db *sql.DB
 }
 
-// NewStore funkcija je takođe ista
 func NewStore(user, password, host, dbname string) (*Store, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", user, password, host, dbname)
 	db, err := sql.Open("mysql", dsn)
