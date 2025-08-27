@@ -88,7 +88,18 @@ func (s *Store) Seed() error {
 		INSERT IGNORE INTO users (id, username, password, email, role) VALUES
 		(1, 'admin', ?, 'admin@example.com', 'administrator'),
 		(2, 'vodic_pera', ?, 'pera@example.com', 'guide'),
-		(3, 'turista_mika', ?, 'mika@example.com', 'tourist');
+		(3, 'turista_mika', ?, 'mika@example.com', 'tourist'),
+		(4, 'turista_ana', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'ana@example.com', 'tourist'),
+		(5, 'turista_marko', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'marko@example.com', 'tourist'),
+		(6, 'turista_jelena', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'jelena@example.com', 'tourist'),
+		(7, 'turista_nikola', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'nikola@example.com', 'tourist'),
+		(8, 'turista_stefan', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'stefan@example.com', 'tourist'),
+		(9, 'turista_ivana', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'ivana@example.com', 'tourist'),
+		(10, 'turista_milica', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'milica@example.com', 'tourist'),
+		(11, 'turista_bojan', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'bojan@example.com', 'tourist'),
+		(12, 'turista_teodora', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'teodora@example.com', 'tourist'),
+		(13, 'turista_vuk', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'vuk@example.com', 'tourist'),
+		(14, 'turista_luka', '$2a$12$opHHuL4gAyPUw.FEAHDUSOcmyWOSKBTb2j4phe3x1TszFT0S70i/G', 'luka@example.com', 'tourist');
 	`, string(hashedPasswordAdmin), string(hashedPasswordVodic), string(hashedPasswordTurista))
 
 	if err != nil {
@@ -99,7 +110,18 @@ func (s *Store) Seed() error {
 	_, err = s.db.Exec(`
 		INSERT IGNORE INTO profiles (user_id, first_name, last_name, biography, motto) VALUES
 		(2, 'Pera', 'Peric', 'Iskusni vodič kroz skrivene delove grada.', 'Carpe diem'),
-		(3, 'Mika', 'Mikic', 'Strastveni putnik i ljubitelj prirode.', 'Live, travel, love');
+		(3, 'Mika', 'Mikic', 'Strastveni putnik i ljubitelj prirode.', 'Live, travel, love'),
+		(4, 'Ana', 'Petrović', 'Avanturista u duši, zaljubljenica u planine i duga putovanja.', 'Explore more, worry less'),
+		(5, 'Marko', 'Jovanović', 'Obožava istorijske znamenitosti i lokalnu kuhinju.', 'Taste the world'),
+		(6, 'Jelena', 'Stanković', 'Strastvena fotografkinja i zaljubljenica u prirodne lepote.', 'Capture the moment'),
+		(7, 'Nikola', 'Ilić', 'Putnik koji istražuje gradove kroz kulturu i umetnost.', 'Art is everywhere'),
+		(8, 'Stefan', 'Kovačević', 'Ljubitelj avantura i ekstremnih sportova.', 'No risk, no fun'),
+		(9, 'Ivana', 'Đorđević', 'Opuštena putnica koja voli more, sunce i plaže.', 'Sea you soon'),
+		(10, 'Milica', 'Savić', 'Entuzijasta za putovanja vozom i otkrivanje novih gradova.', 'Journey, not destination'),
+		(11, 'Bojan', 'Nikolić', 'Obožava planinarenje i istraživanje nepoznatih mesta.', 'Climb every mountain'),
+		(12, 'Teodora', 'Lazić', 'Ljubitelj kulture, muzeja i istorije sveta.', 'Past meets present'),
+		(13, 'Vuk', 'Milovanović', 'Mladi istraživač koji voli prirodu i kampovanja.', 'Into the wild'),
+		(14, 'Luka', 'Radovanović', 'Putnik koji kombinuje posao i zadovoljstvo.', 'Work, travel, repeat');
 	`)
 	if err != nil {
 		return fmt.Errorf("error seeding profiles: %w", err)

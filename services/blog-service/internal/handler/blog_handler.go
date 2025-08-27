@@ -251,21 +251,83 @@ func (h *BlogHandler) ToggleLike(c *gin.Context) {
 	})
 }
 
+// moze da vidi samo blogove korisnika koje prati
+type FollowingUser struct {
+	UserID int64 `json:"userId"`
+}
+
 func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
-	blogs, err := h.store.GetAllBlogs()
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	currentUserID := userIDValue.(int64)
+
+	// --- POČETAK NOVE LOGIKE ---
+	// 2. Pozivamo followers-service da dobijemo listu ID-jeva korisnika koje pratimo
+	url := "http://followers-service:8004/api/followers/me/following"
+
+	// Kreiramo zahtev sa tokenom
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request for followers-service"})
+		return
+	}
+	// Prosleđujemo token iz originalnog zahteva
+	req.Header.Add("Authorization", c.GetHeader("Authorization"))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	followingIDs := make(map[int64]bool)
+	// Uvek dodajemo sopstveni ID, da bismo videli i svoje blogove
+	followingIDs[currentUserID] = true
+
+	if err != nil {
+		log.Printf("Error fetching following list from followers-service: %v", err)
+		// U slučaju greške, nastavljamo dalje, ali ćemo videti samo sopstvene blogove
+	} else if resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+		var followingList []FollowingUser
+		if err := json.NewDecoder(resp.Body).Decode(&followingList); err == nil {
+			for _, user := range followingList {
+				followingIDs[user.UserID] = true
+			}
+		} else {
+			log.Printf("Error decoding following list: %v", err)
+		}
+	} else {
+		log.Printf("Followers-service returned non-OK status: %d", resp.StatusCode)
+	}
+	// --- KRAJ NOVE LOGIKE ---
+
+	// 3. Dobavi SVE blogove iz baze
+	allBlogs, err := h.store.GetAllBlogs()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve blogs"})
 		return
 	}
 
-	if len(blogs) == 0 {
+	// --- POČETAK FILTRIRANJA ---
+	// 4. Filtriraj blogove
+	var filteredBlogs []*model.BlogWithStats
+	for _, blog := range allBlogs {
+		if _, ok := followingIDs[blog.AuthorID]; ok {
+			filteredBlogs = append(filteredBlogs, blog)
+		}
+	}
+	// --- KRAJ FILTRIRANJA ---
+
+	// Ako je lista prazna nakon filtriranja, vrati praznu listu
+	if len(filteredBlogs) == 0 {
 		c.JSON(http.StatusOK, []*model.BlogWithStats{})
 		return
 	}
 
-	// 2. Sakupi sve jedinstvene author ID-jeve
+	// 5. Sakupi ID-jeve autora SAMO za filtrirane blogove
 	authorIDs := make(map[int64]bool)
-	for _, blog := range blogs {
+	for _, blog := range filteredBlogs {
 		authorIDs[blog.AuthorID] = true
 	}
 
@@ -276,9 +338,9 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 
 	// 3. Pozovi stakeholders-service da dobiješ informacije o autorima
 	// Unutar Docker mreže, koristimo ime servisa kao hostname.
-	url := fmt.Sprintf("http://stakeholders-service:8001/users/batch?ids=%s", strings.Join(ids, ","))
+	stakeholdersURL := fmt.Sprintf("http://stakeholders-service:8001/users/batch?ids=%s", strings.Join(ids, ","))
 
-	resp, err := http.Get(url)
+	stakeholdersResp, err := http.Get(stakeholdersURL)
 	if err != nil {
 		log.Printf("Error fetching user data from stakeholders-service: %v", err)
 		// U slučaju greške, možemo vratiti blogove bez info o autoru
@@ -286,15 +348,15 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 	}
 
 	authorsInfo := make(map[int64]UserInfo)
-	if resp != nil && resp.StatusCode == http.StatusOK {
-		defer resp.Body.Close()
-		if err := json.NewDecoder(resp.Body).Decode(&authorsInfo); err != nil {
+	if stakeholdersResp != nil && stakeholdersResp.StatusCode == http.StatusOK {
+		defer stakeholdersResp.Body.Close()
+		if err := json.NewDecoder(stakeholdersResp.Body).Decode(&authorsInfo); err != nil {
 			log.Printf("Error decoding user data: %v", err)
 		}
 	}
 
 	// 4. Spoji informacije o autorima sa blogovima
-	for _, blog := range blogs {
+	for _, blog := range filteredBlogs {
 		if author, ok := authorsInfo[blog.AuthorID]; ok {
 			blog.Author.Username = author.Username
 			if author.FirstName.Valid {
@@ -309,7 +371,7 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, blogs)
+	c.JSON(http.StatusOK, filteredBlogs)
 }
 func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
 	blogID, err := strconv.ParseInt(c.Param("blogId"), 10, 64)
