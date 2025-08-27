@@ -45,7 +45,9 @@ func (s *Store) Init() error {
 			password VARCHAR(255) NOT NULL,
 			email VARCHAR(255) NOT NULL UNIQUE,
 			role VARCHAR(50) NOT NULL,
-			is_active BOOLEAN DEFAULT TRUE
+			is_active BOOLEAN DEFAULT TRUE,
+		    latitude DOUBLE,
+		    longitude DOUBLE
 		);
 	`)
 	if err != nil {

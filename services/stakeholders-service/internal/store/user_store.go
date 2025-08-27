@@ -129,3 +129,24 @@ func (s *Store) UnblockUser(userID int64) error {
 	_, err := s.db.Exec("UPDATE users SET is_active = TRUE WHERE id = ?", userID)
 	return err
 }
+
+func (s *Store) UpdatePosition(userID int64, latitude, longitude float64) error {
+	_, err := s.db.Exec("UPDATE users SET latitude = ?, longitude = ? WHERE id = ?", latitude, longitude, userID)
+	return err
+}
+
+func (s *Store) GetPosition(userID int64) (sql.NullFloat64, sql.NullFloat64, error) {
+	var lat, lon sql.NullFloat64
+	// Ovaj upit dohvata SAMO latitude i longitude
+	row := s.db.QueryRow("SELECT latitude, longitude FROM users WHERE id = ?", userID)
+	err := row.Scan(&lat, &lon)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Nije greška ako korisnik postoji ali nema poziciju (NULL vrednosti)
+			// sql.ErrNoRows će se desiti samo ako korisnik sa tim ID-jem ne postoji uopšte
+			return lat, lon, nil
+		}
+		return lat, lon, err
+	}
+	return lat, lon, nil
+}

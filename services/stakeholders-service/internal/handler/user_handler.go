@@ -357,3 +357,53 @@ func (h *UserHandler) UnblockUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User unblocked successfully"})
 }
+
+type PositionDto struct {
+	Latitude  float64 `json:"latitude" binding:"required"`
+	Longitude float64 `json:"longitude" binding:"required"`
+}
+
+// 👇 DODAJTE OVAJ NOVI HANDLER NA KRAJ FAJLA
+func (h *UserHandler) UpdatePosition(c *gin.Context) {
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID := userIDValue.(int64)
+
+	var req PositionDto
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.store.UpdatePosition(userID, req.Latitude, req.Longitude)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update position"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Position updated successfully"})
+}
+
+func (h *UserHandler) GetPosition(c *gin.Context) {
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID := userIDValue.(int64)
+
+	// 👇 ZAMENITE POZIV GetUserByID SA GetPosition 👇
+	lat, lon, err := h.store.GetPosition(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error while fetching position"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"latitude":  lat,
+		"longitude": lon,
+	})
+}
