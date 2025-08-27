@@ -29,6 +29,9 @@ export function TouristNavbar() {
         <Link to="/location-simulator" className="text-muted-foreground transition-colors hover:text-foreground">
           Location Simulator
         </Link>
+        <Link to="/simulator" className="text-muted-foreground transition-colors hover:text-foreground">
+          Position Simulator
+        </Link>
       </nav>
       <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
         <form className="ml-auto flex-1 sm:flex-initial">

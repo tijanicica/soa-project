@@ -148,6 +148,13 @@ func main() {
 
 	}
 
+	positionRoutes := router.Group("/position")
+	positionRoutes.Use(handler.AuthMiddleware())
+	{
+		positionRoutes.GET("", userHandler.GetPosition)
+		positionRoutes.PUT("", userHandler.UpdatePosition)
+	}
+
 	// ZAŠTIĆENE RUTE
 	profileRoutes := router.Group("/profile")
 	profileRoutes.Use(handler.AuthMiddleware())
