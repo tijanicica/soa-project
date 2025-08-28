@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using tour_service.Models;
@@ -6,6 +6,7 @@ using tour_service.Services;
 
 namespace tour_service.Controllers
 {
+
 
     [ApiController]
     [Route("[controller]")]
@@ -17,6 +18,8 @@ namespace tour_service.Controllers
         {
             _tourService = tourService;
         }
+
+
 
         // POST /tours
         [HttpPost("create")]
@@ -186,7 +189,7 @@ namespace tour_service.Controllers
         }
 
         [HttpGet("published")]
-        [AllowAnonymous] // Eksplicitno ka�emo da ne treba autorizacija
+        [AllowAnonymous] // Eksplicitno kažemo da ne treba autorizacija
         public async Task<ActionResult<List<PublishedTourDto>>> GetPublishedTours()
         {
             var tours = await _tourService.GetAllPublishedToursAsync();

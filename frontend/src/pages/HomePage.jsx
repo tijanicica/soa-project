@@ -88,15 +88,13 @@ export function HomePage() {
                   </CardHeader>
 
                   <CardContent className="flex-grow space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      {tour.tags?.map(tag => <Badge key={tag} variant="outline">{tag}</Badge>)}
-                    </div>
                     <div className="space-y-2 text-sm text-muted-foreground pt-2 border-t">
-                        <div className="flex items-center gap-2"><BarChart3 className="h-4 w-4 text-cyan-700"/><span>Difficulty: <strong>{tour.difficulty}</strong></span></div>
+                      
                         <div className="flex items-center gap-2"><Coins className="h-4 w-4 text-cyan-700"/><span>Price: <strong>{tour.price > 0 ? `${tour.price.toFixed(2)} RSD` : 'Free'}</strong></span></div>
+                        {tour.firstKeyPointName && (<div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-cyan-700"/><span>Starts at: <strong>{tour.firstKeyPointName}</strong></span></div>)}
                         {tour.distanceKm > 0 && (<div className="flex items-center gap-2"><Route className="h-4 w-4 text-cyan-700"/><span>Distance: <strong>{tour.distanceKm.toFixed(1)} km</strong></span></div>)}
                         {tour.transportTimes && tour.transportTimes.length > 0 && (<div className="flex items-center gap-2"><Clock className="h-4 w-4 text-cyan-700"/><span>Est. Time: <strong>{tour.transportTimes[0].durationMinutes} min ({tour.transportTimes[0].transportType})</strong></span></div>)}
-                        {tour.firstKeyPointName && (<div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-cyan-700"/><span>Starts at: <strong>{tour.firstKeyPointName}</strong></span></div>)}
+                        
                     </div>
                   </CardContent>
 
