@@ -37,11 +37,12 @@ namespace purchase_service.Migrations
 
                     b.Property<string>("TourId")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ShoppingCartTouristId");
+                    b.HasIndex("ShoppingCartTouristId", "TourId")
+                        .IsUnique();
 
                     b.ToTable("OrderItems");
                 });

@@ -11,7 +11,7 @@ using purchase_service.Data;
 namespace purchase_service.Migrations
 {
     [DbContext(typeof(PurchaseDbContext))]
-    [Migration("20250827202342_InitialCreate")]
+    [Migration("20250828144523_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -40,11 +40,12 @@ namespace purchase_service.Migrations
 
                     b.Property<string>("TourId")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ShoppingCartTouristId");
+                    b.HasIndex("ShoppingCartTouristId", "TourId")
+                        .IsUnique();
 
                     b.ToTable("OrderItems");
                 });

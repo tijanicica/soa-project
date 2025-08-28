@@ -70,20 +70,69 @@ namespace purchase_service.Services
 
         // U fajlu PurchaseService.cs
 
+        /* public async Task<ShoppingCart> AddToCartAsync(long touristId, string tourId)
+         {
+             // <-- POČETAK DELA KOJI NEDOSTAJE ---
+             // 1. Get tour details from the tour-service
+             var tourDetails = await GetTourDetailsFromTourServiceAsync(tourId);
+
+             // 2. Business logic validation
+             if (tourDetails.Status != "published")
+             {
+                 throw new InvalidOperationException("Only published tours can be purchased.");
+             }
+             // --- KRAJ DELA KOJI NEDOSTAJE -->
+
+             // 3. Find or create the shopping cart
+             var cart = await _context.ShoppingCarts
+                 .Include(c => c.Items)
+                 .FirstOrDefaultAsync(c => c.TouristId == touristId);
+
+             if (cart == null)
+             {
+                 cart = new ShoppingCart { TouristId = touristId };
+                 await _context.ShoppingCarts.AddAsync(cart);
+                 await _context.SaveChangesAsync();
+             }
+
+             // 4. Check if the tour is already in the cart
+             if (cart.Items.Any(item => item.TourId == tourId))
+             {
+                 throw new InvalidOperationException("The tour is already in the shopping cart.");
+             }
+
+             // 5. Create the new item
+             var orderItem = new OrderItem
+             {
+                 TourId = tourDetails.Id,
+                 Name = tourDetails.Name,
+                 Price = tourDetails.Price,
+                 ShoppingCartTouristId = touristId
+             };
+
+             // 6. Add to context and save to database
+             _context.OrderItems.Add(orderItem);
+             await _context.SaveChangesAsync();
+
+             // *** KLJUČNA IZMENA: Ručno dodajte novi artikal u praćeni objekat ***
+             cart.Items.Add(orderItem);
+
+             // 7. Vratite ažurirani 'cart' objekat koji EF Core već prati
+             return cart;
+         }*/
+
+        // U fajlu: PurchaseService.cs
+
         public async Task<ShoppingCart> AddToCartAsync(long touristId, string tourId)
         {
-            // <-- POČETAK DELA KOJI NEDOSTAJE ---
-            // 1. Get tour details from the tour-service
+            // 1. Dohvatanje i validacija ture (ostaje isto)
             var tourDetails = await GetTourDetailsFromTourServiceAsync(tourId);
-
-            // 2. Business logic validation
             if (tourDetails.Status != "published")
             {
                 throw new InvalidOperationException("Only published tours can be purchased.");
             }
-            // --- KRAJ DELA KOJI NEDOSTAJE -->
 
-            // 3. Find or create the shopping cart
+            // 2. Pronalazak ili kreiranje korpe (ostaje isto)
             var cart = await _context.ShoppingCarts
                 .Include(c => c.Items)
                 .FirstOrDefaultAsync(c => c.TouristId == touristId);
@@ -95,13 +144,13 @@ namespace purchase_service.Services
                 await _context.SaveChangesAsync();
             }
 
-            // 4. Check if the tour is already in the cart
+            // 3. Provera da li artikal već postoji (ostaje isto)
             if (cart.Items.Any(item => item.TourId == tourId))
             {
                 throw new InvalidOperationException("The tour is already in the shopping cart.");
             }
 
-            // 5. Create the new item
+            // 4. Kreiranje novog artikla (ostaje isto)
             var orderItem = new OrderItem
             {
                 TourId = tourDetails.Id,
@@ -110,14 +159,15 @@ namespace purchase_service.Services
                 ShoppingCartTouristId = touristId
             };
 
-            // 6. Add to context and save to database
+            // 5. Čuvanje u bazi (ostaje isto)
             _context.OrderItems.Add(orderItem);
             await _context.SaveChangesAsync();
 
-            // *** KLJUČNA IZMENA: Ručno dodajte novi artikal u praćeni objekat ***
+            // *** KLJUČNA ISPRAVKA: Ručno dodajte novi artikal u praćeni objekat ***
+            // Ovo osigurava da objekat koji se vraća frontendu sadrži novu stavku.
             cart.Items.Add(orderItem);
 
-            // 7. Vratite ažurirani 'cart' objekat koji EF Core već prati
+            // 6. Vraćanje ažuriranog objekta
             return cart;
         }
 
@@ -164,7 +214,7 @@ namespace purchase_service.Services
             return tourDetails;
         }
 
-        public async Task<ShoppingCart> RemoveFromCartAsync(long touristId, string tourId)
+        /*public async Task<ShoppingCart> RemoveFromCartAsync(long touristId, string tourId)
         {
             // 1. Find the user's shopping cart
             var cart = await _context.ShoppingCarts
@@ -188,6 +238,40 @@ namespace purchase_service.Services
             _context.OrderItems.Remove(itemToRemove); // EF Core će obrisati i iz liste i iz baze
             await _context.SaveChangesAsync();
 
+            return cart;
+        }*/
+
+        // U fajlu: PurchaseService.cs
+
+        public async Task<ShoppingCart> RemoveFromCartAsync(long touristId, string tourId)
+        {
+            // 1. Učitavanje korpe (ostaje isto)
+            var cart = await _context.ShoppingCarts
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.TouristId == touristId);
+
+            if (cart == null || !cart.Items.Any())
+            {
+                throw new InvalidOperationException("Shopping cart is already empty.");
+            }
+
+            // 2. Pronalazak artikla za brisanje (ostaje isto)
+            var itemToRemove = cart.Items.FirstOrDefault(item => item.TourId == tourId);
+
+            if (itemToRemove == null)
+            {
+                throw new InvalidOperationException("This item is not in the shopping cart.");
+            }
+
+            // 3. Brisanje iz baze (ostaje isto)
+            _context.OrderItems.Remove(itemToRemove);
+            await _context.SaveChangesAsync();
+
+            // *** KLJUČNA ISPRAVKA: Ručno uklonite stavku i iz liste u memoriji ***
+            // Ovo osigurava da objekat koji se vraća frontendu VIŠE NE sadrži obrisanu stavku.
+            cart.Items.Remove(itemToRemove);
+
+            // 4. Vraćanje ažuriranog objekta
             return cart;
         }
 

@@ -54,6 +54,7 @@ export function ShoppingCartSheet({ isOpen, onOpenChange }) {
                       <div>
                         <p className="font-semibold">{item.Name}</p>
                         <p className="text-sm text-muted-foreground">{item.Price.toFixed(2)} RSD</p>
+                        <p className="text-xs text-slate-400 mt-1">ID: {item.TourId}</p>
                       </div>
                       <Button 
                         variant="ghost" 

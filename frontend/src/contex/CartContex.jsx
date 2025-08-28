@@ -1,13 +1,10 @@
-// U fajlu: src/contex/CartContex.jsx (Verzija bez provere autorizacije)
+// U fajlu: src/contex/CartContex.jsx (FINALNA VERZIJA SA CLEANUP FUNKCIJOM)
 
 import React, { createContext, useReducer, useContext, useEffect } from 'react';
 import { getCart, addToCart, removeFromCart, checkout } from '../services/PurchaseApi';
-// OBRISANO: Ne uvozimo više useAuth
 
-// 1. Kreiramo Context
 const CartContext = createContext();
 
-// 2. Akcije koje možemo izvršiti nad stanjem
 const ACTIONS = {
   SET_CART: 'set-cart',
   SET_LOADING: 'set-loading',
@@ -16,7 +13,6 @@ const ACTIONS = {
   CLOSE_CART: 'close-cart',
 };
 
-// 3. Reducer - ostaje potpuno isti
 function cartReducer(state, action) {
   switch (action.type) {
     case ACTIONS.SET_CART:
@@ -34,40 +30,45 @@ function cartReducer(state, action) {
   }
 }
 
-// 4. Provider Komponenta - "mozak" operacije (sada mnogo jednostavniji)
 export function CartProvider({ children }) {
-  // OBRISANO: Ne zovemo useAuth()
-  
   const [state, dispatch] = useReducer(cartReducer, {
     cart: { Items: [], TotalPrice: 0 },
-    loading: true, // Uvek počinjemo sa stanjem učitavanja
+    loading: true,
     error: null,
     isCartOpen: false,
   });
 
-  // --- Funkcije za upravljanje podacima korpe ---
-
-  const fetchCart = async () => {
-    dispatch({ type: ACTIONS.SET_LOADING });
-    try {
-      // Uvek pokušavamo da dobijemo korpu.
-      // PurchaseApi će automatski dodati token ako postoji.
-      const data = await getCart(); 
-      dispatch({ type: ACTIONS.SET_CART, payload: data });
-    } catch (error) {
-      // Ako API vrati 401 (Unauthorized) ili neku drugu grešku,
-      // postavićemo grešku i isprazniti korpu.
-      dispatch({ type: ACTIONS.SET_ERROR, payload: 'Could not fetch cart.' });
-      dispatch({ type: ACTIONS.SET_CART, payload: { Items: [], TotalPrice: 0 } });
-    }
-  };
-
-  // Učitavanje korpe pri prvom renderovanju komponente.
-  // Prazan niz zavisnosti `[]` znači da će se ovo izvršiti samo jednom.
+  // Učitavanje korpe pri prvom renderovanju, zaštićeno od duplog pozivanja u Strict Mode-u
   useEffect(() => {
-    fetchCart();
-  }, []);
+    let isMounted = true; // Zastavica koja prati da li je ova instanca komponente "živa"
 
+    const fetchCart = async () => {
+      dispatch({ type: ACTIONS.SET_LOADING });
+      try {
+        const data = await getCart(); 
+        // Ažuriraj stanje SAMO AKO je komponenta i dalje "živa"
+        if (isMounted) {
+          dispatch({ type: ACTIONS.SET_CART, payload: data });
+        }
+      } catch (error) {
+        if (isMounted) {
+          dispatch({ type: ACTIONS.SET_ERROR, payload: 'Could not fetch cart.' });
+          dispatch({ type: ACTIONS.SET_CART, payload: { Items: [], TotalPrice: 0 } });
+        }
+      }
+    };
+
+    fetchCart();
+
+    // CLEANUP FUNKCIJA
+    // Ova funkcija se automatski poziva kada React "uništi" ovu instancu komponente
+    return () => {
+      isMounted = false; // Postavi zastavicu na false, sprečavajući stare API pozive da ažuriraju stanje
+    };
+  }, []); // Prazan niz `[]` osigurava da se ovo dešava samo pri prvom "pravom" učitavanju
+
+  
+  // Sve ostale funkcije ostaju nepromenjene jer one ne pate od ovog problema
   const addItemToCart = async (tourId) => {
     try {
       const data = await addToCart(tourId); 
@@ -91,19 +92,19 @@ export function CartProvider({ children }) {
   const checkoutCart = async () => {
     try {
       await checkout();
-      await fetchCart(); 
+      // Nakon checkout-a, ponovo dohvati stanje.
+      // Ne treba nam 'isMounted' ovde jer se ova funkcija poziva na zahtev korisnika.
+      const data = await getCart();
+      dispatch({ type: ACTIONS.SET_CART, payload: data });
       return { success: true };
     } catch (error) {
       return { success: false, error: error.response?.data || error.message };
     }
   };
 
-  // --- Funkcije za upravljanje vidljivošću korpe ---
-
   const openCart = () => dispatch({ type: ACTIONS.OPEN_CART });
   const closeCart = () => dispatch({ type: ACTIONS.CLOSE_CART });
 
-  // Vrednosti koje pružamo celoj aplikaciji (ostaju iste)
   const value = {
     cart: state.cart,
     cartItemCount: state.cart?.Items?.length || 0,
@@ -120,7 +121,6 @@ export function CartProvider({ children }) {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
-// 5. Custom Hook - ostaje isti
 export function useCart() {
   const context = useContext(CartContext);
   if (context === undefined) {
