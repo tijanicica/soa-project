@@ -58,14 +58,14 @@ export const checkout = async () => {
     return response.data;
 };
 
-// GET /my-tokens - Dohvata sve kupljene ture (tokene) za korisnika
-export const getMyPurchaseTokens = async () => {
-    const response = await apiClient.get('/my-tokens');
-    return response.data;
-};
 
 // GET /tokens/check/{tourId} - Proverava da li je korisnik već kupio određenu turu
 export const checkTourOwnership = async (tourId) => {
     const response = await apiClient.get(`/tokens/check/${tourId}`);
+    return response.data;
+};
+
+export const getMyPurchaseTokens = async () => {
+    const response = await apiClient.get('/my-purchased-tours'); // Novi endpoint
     return response.data;
 };

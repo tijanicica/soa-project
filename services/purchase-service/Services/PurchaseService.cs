@@ -369,5 +369,93 @@ namespace purchase_service.Services
             Console.WriteLine("Simulating payment refund...");
             return Task.CompletedTask;
         }
+        // U fajlu: purchase-service/Services/PurchaseService.cs
+
+        public async Task<List<PurchasedTourDetailsDto>> GetPurchasedToursWithDetailsAsync(long touristId)
+        {
+            // 1. Dohvati sve tokene o kupovini za datog turistu
+            var tokens = await GetPurchaseTokensAsync(touristId);
+            if (tokens == null || !tokens.Any())
+            {
+                return new List<PurchasedTourDetailsDto>();
+            }
+
+            var purchasedTours = new List<PurchasedTourDetailsDto>();
+
+            // 2. Za svaki token, pozovi TourService da dobiješ pune detalje
+            foreach (var token in tokens)
+            {
+                try
+                {
+                    // Pozivamo GET /tours/{id} i direktno ga pretvaramo u naš definisani DTO
+                    var tourDetails = await _httpClient.GetFromJsonAsync<TourServiceResponseDto>($"/tours/{token.TourId}");
+
+                    if (tourDetails != null)
+                    {
+                        // Mapiramo podatke iz jednog DTO-a u drugi
+                        purchasedTours.Add(new PurchasedTourDetailsDto
+                        {
+                            Id = tourDetails.Id,
+                            Name = tourDetails.Name,
+                            Description = tourDetails.Description,
+                            Difficulty = tourDetails.Difficulty,
+                            Tags = tourDetails.Tags,
+                            Price = tourDetails.Price,
+                            DistanceKm = tourDetails.DistanceKm,
+                            TransportTimes = tourDetails.TransportTimes,
+                            KeyPoints = tourDetails.KeyPoints,
+                            PurchaseDate = token.PurchaseDate
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Could not fetch details for tour ID {token.TourId}: {ex.Message}");
+                }
+            }
+
+            return purchasedTours;
+        }
+    } // Kraj PurchaseService klase
+
+
+    // --- ISPRAVLJENE I POJEDNOSTAVLJENE DTO KLASE ---
+
+    // DTO koji predstavlja ODGOVOR koji očekujemo od tour-service-a.
+    // Sadrži sve što nam treba.
+    public class TourServiceResponseDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Difficulty { get; set; } = string.Empty;
+        public List<string> Tags { get; set; } = new();
+        public double Price { get; set; }
+        public double DistanceKm { get; set; }
+        public List<object> TransportTimes { get; set; } = new();
+        public List<FullKeyPointDto> KeyPoints { get; set; } = new();
+    }
+
+    // DTO koji VRAĆAMO našem frontendu.
+    public class PurchasedTourDetailsDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Difficulty { get; set; } = string.Empty;
+        public List<string> Tags { get; set; } = new();
+        public double Price { get; set; }
+        public double DistanceKm { get; set; }
+        public List<object> TransportTimes { get; set; } = new();
+        public List<FullKeyPointDto> KeyPoints { get; set; } = new();
+        public DateTime PurchaseDate { get; set; }
+    }
+
+    // Pomoćni DTO za ključne tačke
+    public class FullKeyPointDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
     }
 }

@@ -121,10 +121,8 @@ namespace purchase_service.Controllers
             {
                 var touristId = GetCurrentUserId(); // Imate ispravan touristId ovde
 
-                // ISPRAVKA: Prosleđujemo 'touristId' (long) i 'tourId' (string)
                 var updatedCart = await _purchaseService.RemoveFromCartAsync(touristId, tourId);
 
-                // Ostatak koda za formatiranje odgovora je ispravan
                 var totalPrice = updatedCart.Items.Sum(item => item.Price);
                 return Ok(new { Items = updatedCart.Items, TotalPrice = totalPrice });
             }
@@ -192,6 +190,25 @@ namespace purchase_service.Controllers
             {
                 // Hvata kritične greške kao "plaćanje nije uspelo" ili greške u transakciji
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+
+
+        [HttpGet("my-purchased-tours")] // Bolje ime za endpoint
+        [Authorize(Roles = "tourist")]
+        public async Task<IActionResult> GetMyPurchasedTours()
+        {
+            try
+            {
+                var touristId = GetCurrentUserId();
+                // Pozivamo novu, pametnu metodu iz servisa
+                var purchasedTours = await _purchaseService.GetPurchasedToursWithDetailsAsync(touristId);
+                return Ok(purchasedTours);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An internal error occurred: {ex.Message}");
             }
         }
     }
