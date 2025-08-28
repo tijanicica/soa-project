@@ -1,4 +1,4 @@
-// U fajlu: src/contex/CartContex.jsx (FINALNA VERZIJA SA CLEANUP FUNKCIJOM)
+// U fajlu: src/contex/CartContex.jsx (FINALNA VERZIJA SA AbortController-om)
 
 import React, { createContext, useReducer, useContext, useEffect } from 'react';
 import { getCart, addToCart, removeFromCart, checkout } from '../services/PurchaseApi';
@@ -38,20 +38,20 @@ export function CartProvider({ children }) {
     isCartOpen: false,
   });
 
-  // Učitavanje korpe pri prvom renderovanju, zaštićeno od duplog pozivanja u Strict Mode-u
+  // Učitavanje korpe pri prvom renderovanju, zaštićeno od trke stanja
   useEffect(() => {
-    let isMounted = true; // Zastavica koja prati da li je ova instanca komponente "živa"
+    // KORAK A: Kreiramo novi kontroler svaki put kad se useEffect pokrene
+    const controller = new AbortController();
 
     const fetchCart = async () => {
       dispatch({ type: ACTIONS.SET_LOADING });
       try {
-        const data = await getCart(); 
-        // Ažuriraj stanje SAMO AKO je komponenta i dalje "živa"
-        if (isMounted) {
-          dispatch({ type: ACTIONS.SET_CART, payload: data });
-        }
+        // KORAK B: Prosleđujemo "signal" našoj API funkciji
+        const data = await getCart(controller.signal); 
+        dispatch({ type: ACTIONS.SET_CART, payload: data });
       } catch (error) {
-        if (isMounted) {
+        // Ignorišemo grešku ako je nastala zbog namernog otkazivanja
+        if (error.name !== 'CanceledError') {
           dispatch({ type: ACTIONS.SET_ERROR, payload: 'Could not fetch cart.' });
           dispatch({ type: ACTIONS.SET_CART, payload: { Items: [], TotalPrice: 0 } });
         }
@@ -60,15 +60,16 @@ export function CartProvider({ children }) {
 
     fetchCart();
 
-    // CLEANUP FUNKCIJA
-    // Ova funkcija se automatski poziva kada React "uništi" ovu instancu komponente
+    // KORAK C: CLEANUP FUNKCIJA
+    // Kada React "uništi" komponentu (zbog StrictMode-a), pozivamo 'abort()'
+    // Ovo će odmah OTKAZATI API poziv koji je u toku.
     return () => {
-      isMounted = false; // Postavi zastavicu na false, sprečavajući stare API pozive da ažuriraju stanje
+      controller.abort();
     };
-  }, []); // Prazan niz `[]` osigurava da se ovo dešava samo pri prvom "pravom" učitavanju
+  }, []); // Prazan niz osigurava da se ovo dešava samo pri prvom učitavanju
 
   
-  // Sve ostale funkcije ostaju nepromenjene jer one ne pate od ovog problema
+  // Sve ostale funkcije ostaju nepromenjene
   const addItemToCart = async (tourId) => {
     try {
       const data = await addToCart(tourId); 
@@ -80,7 +81,7 @@ export function CartProvider({ children }) {
   };
 
   const removeItemFromCart = async (tourId) => {
-     try {
+    try {
       const data = await removeFromCart(tourId);
       dispatch({ type: ACTIONS.SET_CART, payload: data });
       return { success: true };
@@ -92,9 +93,7 @@ export function CartProvider({ children }) {
   const checkoutCart = async () => {
     try {
       await checkout();
-      // Nakon checkout-a, ponovo dohvati stanje.
-      // Ne treba nam 'isMounted' ovde jer se ova funkcija poziva na zahtev korisnika.
-      const data = await getCart();
+      const data = await getCart(); // Ne treba AbortController ovde
       dispatch({ type: ACTIONS.SET_CART, payload: data });
       return { success: true };
     } catch (error) {

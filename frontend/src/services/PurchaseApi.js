@@ -34,9 +34,9 @@ apiClient.interceptors.request.use(
  * Koristimo 'response.data' da bismo komponentama odmah vratili koristan JSON objekat.
 */
 
-// GET /cart - Dohvata trenutno stanje korpe za ulogovanog korisnika
-export const getCart = async () => {
-    const response = await apiClient.get('/cart');
+export const getCart = async (signal) => {
+    // ISPRAVKA: Prosleđujemo signal u Axios konfiguraciju
+    const response = await apiClient.get('/cart', { signal });
     return response.data;
 };
 
