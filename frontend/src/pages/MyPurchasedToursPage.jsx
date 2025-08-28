@@ -99,7 +99,7 @@ export function MyPurchasedToursPage() {
                       
                       <Accordion type="single" collapsible className="w-full">
                          <AccordionItem value="item-1">
-                            <AccordionTrigger>Unlocked Key Points ({tour.KeyPoints.length})</AccordionTrigger>
+                            <AccordionTrigger>Key Points ({tour.KeyPoints.length})</AccordionTrigger>
                             <AccordionContent>
                                 <div className="space-y-4">
                                 {/* --- ISPRAVKA: Mapiranje kroz KeyPoints za prikaz slika --- */}

@@ -296,6 +296,27 @@ namespace purchase_service.Services
                 throw new InvalidOperationException("Shopping cart is empty.");
             }
 
+
+
+            // === NOVI KORAK: VALIDACIJA POSTOJEĆIH TOKENA ===
+            // Proveravamo da li korisnik već poseduje neku od tura iz korpe
+            var tourIdsInCart = cart.Items.Select(item => item.TourId).ToList();
+            var existingTokens = await _context.PurchaseTokens
+                .Where(token => token.TouristId == touristId && tourIdsInCart.Contains(token.TourId))
+                .ToListAsync();
+
+            if (existingTokens.Any())
+            {
+                // Pronađena je bar jedna tura koju korisnik već ima. Prekidamo.
+                var alreadyOwnedTourId = existingTokens.First().TourId;
+                var tourNameInCart = cart.Items.First(item => item.TourId == alreadyOwnedTourId).Name;
+
+                // Bacamo izuzetak sa jasnom porukom na engleskom
+                throw new InvalidOperationException($"You have already purchased the tour: '{tourNameInCart}'.");
+            }
+            // === KRAJ NOVOG KORAKA ===
+
+
             // === SAGA KORAK 2: VALIDACIJA SA EKSTERNIM SERVISOM (Tour Service) ===
             // Proveravamo da li su sve ture i dalje 'published' pre nego što uzmemo novac
             foreach (var item in cart.Items)
