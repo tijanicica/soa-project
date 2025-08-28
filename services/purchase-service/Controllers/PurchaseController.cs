@@ -25,7 +25,7 @@ namespace purchase_service.Controllers
             _purchaseService = purchaseService;
         }
 
-        [HttpPost("cart/add")]
+        /*[HttpPost("cart/add")]
         [Authorize(Roles = "tourist")]
         public async Task<IActionResult> AddToCart([FromBody] AddToCartDto dto)
         {
@@ -50,7 +50,7 @@ namespace purchase_service.Controllers
                 // This catches unexpected errors like service connection problems
                 return StatusCode(500, $"An internal error occurred: {ex.Message}");
             }
-        }
+        }*/
 
         [HttpGet("cart")]
         [Authorize(Roles = "tourist")]
@@ -71,7 +71,7 @@ namespace purchase_service.Controllers
             return Ok(new { cart.Items, TotalPrice = totalPrice });
         }
 
-        [HttpDelete("cart/item/{tourId}")]
+        /*[HttpDelete("cart/item/{tourId}")]
         [Authorize(Roles = "tourist")]
         public async Task<IActionResult> RemoveFromCart(string tourId)
         {
@@ -88,6 +88,53 @@ namespace purchase_service.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"An internal error occurred: {ex.Message}");
+            }
+        }*/
+        [HttpPost("cart/add")]
+        [Authorize(Roles = "tourist")]
+        public async Task<IActionResult> AddToCart([FromBody] AddToCartDto dto)
+        {
+            try
+            {
+                var touristId = GetCurrentUserId();
+                var updatedCart = await _purchaseService.AddToCartAsync(touristId, dto.TourId);
+
+                // ISPRAVKA: Izračunaj TotalPrice i vrati konzistentan objekat
+                var totalPrice = updatedCart.Items.Sum(item => item.Price);
+                return Ok(new { Items = updatedCart.Items, TotalPrice = totalPrice });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"An internal error occurred: {ex.Message}" });
+            }
+        }
+
+        [HttpDelete("cart/item/{tourId}")]
+        [Authorize(Roles = "tourist")]
+        public async Task<IActionResult> RemoveFromCart(string tourId)
+        {
+            try
+            {
+                var touristId = GetCurrentUserId(); // Imate ispravan touristId ovde
+
+                // ISPRAVKA: Prosleđujemo 'touristId' (long) i 'tourId' (string)
+                var updatedCart = await _purchaseService.RemoveFromCartAsync(touristId, tourId);
+
+                // Ostatak koda za formatiranje odgovora je ispravan
+                var totalPrice = updatedCart.Items.Sum(item => item.Price);
+                return Ok(new { Items = updatedCart.Items, TotalPrice = totalPrice });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"An internal error occurred: {ex.Message}" });
             }
         }
 
