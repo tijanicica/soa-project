@@ -1,7 +1,7 @@
-import { useState } from "react"; // Dodajemo useState za loading stanje dugmića
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/contex/CartContex"; // ISPRAVLJENA PUTANJA
+import { useCart } from "@/contex/CartContex";
 import { Loader2, Trash2, ShoppingCart as ShoppingCartIcon } from "lucide-react";
 
 export function ShoppingCartSheet({ isOpen, onOpenChange }) {
@@ -27,7 +27,6 @@ export function ShoppingCartSheet({ isOpen, onOpenChange }) {
       console.log("Checkout successful!");
       onOpenChange(false); // Automatski zatvori Sheet nakon uspešnog checkout-a
     } else {
-      // Kao zamenu za toast, možemo koristiti standardni alert
       alert(`Checkout failed: ${error}`);
     }
     setIsCheckingOut(false);
@@ -45,21 +44,24 @@ export function ShoppingCartSheet({ isOpen, onOpenChange }) {
           
           {!loading && !error && cart && (
             <>
-              {cart.items?.length > 0 ? (
+              {/* ISPRAVKA: Koristi se cart.Items umesto cart.items */}
+              {cart.Items?.length > 0 ? (
                 <div className="divide-y">
-                  {cart.items.map(item => (
-                    <div key={item.tourId} className="flex justify-between items-center py-4">
+                  {/* ISPRAVKA: Koristi se cart.Items umesto cart.items */}
+                  {cart.Items.map(item => (
+                    // ISPRAVKA: Svi property-ji unutar item objekta su sada PascalCase
+                    <div key={item.TourId} className="flex justify-between items-center py-4">
                       <div>
-                        <p className="font-semibold">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">{item.price.toFixed(2)} RSD</p>
+                        <p className="font-semibold">{item.Name}</p>
+                        <p className="text-sm text-muted-foreground">{item.Price.toFixed(2)} RSD</p>
                       </div>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        onClick={() => handleRemoveItem(item.tourId)}
-                        disabled={removingItemId === item.tourId}
+                        onClick={() => handleRemoveItem(item.TourId)}
+                        disabled={removingItemId === item.TourId}
                       >
-                        {removingItemId === item.tourId ? (
+                        {removingItemId === item.TourId ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                             <Trash2 className="h-4 w-4 text-red-500" />
@@ -77,12 +79,14 @@ export function ShoppingCartSheet({ isOpen, onOpenChange }) {
             </>
           )}
         </div>
-        {cart && cart.items?.length > 0 && (
+        {/* ISPRAVKA: Koristi se cart.Items umesto cart.items */}
+        {cart && cart.Items?.length > 0 && (
           <SheetFooter className="border-t pt-4">
             <div className="w-full">
               <div className="flex justify-between font-bold text-lg mb-4">
                 <span>Total:</span>
-                <span>{cart.totalPrice?.toFixed(2) ?? '0.00'} RSD</span>
+                {/* ISPRAVKA: Koristi se cart.TotalPrice umesto cart.totalPrice */}
+                <span>{cart.TotalPrice?.toFixed(2) ?? '0.00'} RSD</span>
               </div>
               <Button 
                 className="w-full" 

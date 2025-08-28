@@ -2,16 +2,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "../hooks/useAuth";
-import { useCart } from "@/contex/CartContex"; // KORAK 1: Uvozimo useCart hook
+import { useCart } from "@/contex/CartContex"; // Uvozimo naš unapređeni hook
 import { User, LogOut, Compass, Search, ShoppingCart } from "lucide-react";
 
-// KORAK 2: Komponenta sada prima samo 'onCartClick' prop
-export function TouristNavbar({ onCartClick }) {
+// ISPRAVKA: Komponenta više ne prima 'onCartClick' prop
+export function TouristNavbar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   
-  // KORAK 3: Dobijamo broj stavki direktno iz CartContext-a
-  const { cartItemCount } = useCart();
+  // ISPRAVKA: Iz konteksta sada uzimamo i 'openCart' funkciju
+  const { cartItemCount, openCart } = useCart();
 
   const handleLogout = () => {
     logout();
@@ -29,9 +29,6 @@ export function TouristNavbar({ onCartClick }) {
           <Compass className="h-6 w-6 text-cyan-600" />
           <span className="font-bold">TourApp</span>
         </Link>
-        <Link to="/tours/search" className="text-foreground transition-colors hover:text-foreground">
-          Find Tours
-        </Link>
         <Link to="/blogs" className="text-muted-foreground transition-colors hover:text-foreground">
           Blogs
         </Link>
@@ -45,11 +42,11 @@ export function TouristNavbar({ onCartClick }) {
           Position Simulator
         </Link>
         <Link
-    to="/my-tours"
-    className="text-muted-foreground transition-colors hover:text-foreground"
-  >
-    My Tours
-  </Link>
+          to="/my-tours"
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
+          My Tours
+        </Link>
       </nav>
 
       {/* Desni deo navigacije */}
@@ -65,11 +62,9 @@ export function TouristNavbar({ onCartClick }) {
           </div>
         </form>
 
-        {/* --- POČETAK PROMENA --- */}
-
-        {/* KORAK 4: Ažurirano dugme za korpu */}
+        {/* --- AŽURIRANO DUGME ZA KORPU --- */}
         <Button
-          onClick={onCartClick} // Poziva funkciju prosleđenu od HomePage
+          onClick={openCart} // ISPRAVKA: Klik poziva 'openCart' funkciju direktno iz konteksta
           variant="ghost"
           size="icon"
           className="relative rounded-full"
@@ -100,8 +95,6 @@ export function TouristNavbar({ onCartClick }) {
           <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>
-        
-        {/* --- KRAJ PROMENA --- */}
       </div>
     </header>
   );

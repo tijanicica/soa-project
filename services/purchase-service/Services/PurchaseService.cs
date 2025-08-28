@@ -25,7 +25,7 @@ namespace purchase_service.Services
             _context = context;
             _httpClient = httpClientFactory.CreateClient("TourService");
         }
-        public async Task<ShoppingCart> AddToCartAsync(long touristId, string tourId)
+        /*public async Task<ShoppingCart> AddToCartAsync(long touristId, string tourId)
         {
             // 1. Get tour details from the tour-service
             var tourDetails = await GetTourDetailsFromTourServiceAsync(tourId);
@@ -65,6 +65,59 @@ namespace purchase_service.Services
             cart.Items.Add(orderItem);
             await _context.SaveChangesAsync();
 
+            return cart;
+        }*/
+
+        // U fajlu PurchaseService.cs
+
+        public async Task<ShoppingCart> AddToCartAsync(long touristId, string tourId)
+        {
+            // <-- POČETAK DELA KOJI NEDOSTAJE ---
+            // 1. Get tour details from the tour-service
+            var tourDetails = await GetTourDetailsFromTourServiceAsync(tourId);
+
+            // 2. Business logic validation
+            if (tourDetails.Status != "published")
+            {
+                throw new InvalidOperationException("Only published tours can be purchased.");
+            }
+            // --- KRAJ DELA KOJI NEDOSTAJE -->
+
+            // 3. Find or create the shopping cart
+            var cart = await _context.ShoppingCarts
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.TouristId == touristId);
+
+            if (cart == null)
+            {
+                cart = new ShoppingCart { TouristId = touristId };
+                await _context.ShoppingCarts.AddAsync(cart);
+                await _context.SaveChangesAsync();
+            }
+
+            // 4. Check if the tour is already in the cart
+            if (cart.Items.Any(item => item.TourId == tourId))
+            {
+                throw new InvalidOperationException("The tour is already in the shopping cart.");
+            }
+
+            // 5. Create the new item
+            var orderItem = new OrderItem
+            {
+                TourId = tourDetails.Id,
+                Name = tourDetails.Name,
+                Price = tourDetails.Price,
+                ShoppingCartTouristId = touristId
+            };
+
+            // 6. Add to context and save to database
+            _context.OrderItems.Add(orderItem);
+            await _context.SaveChangesAsync();
+
+            // *** KLJUČNA IZMENA: Ručno dodajte novi artikal u praćeni objekat ***
+            cart.Items.Add(orderItem);
+
+            // 7. Vratite ažurirani 'cart' objekat koji EF Core već prati
             return cart;
         }
 

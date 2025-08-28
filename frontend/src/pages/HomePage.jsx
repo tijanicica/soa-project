@@ -5,8 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, BarChart3, Coins, Loader2, ShoppingCart, Route, Clock } from "lucide-react";
 import { getPublishedTours } from "../services/TourApi";
-import { ShoppingCartSheet } from "../components/ShoppingCartSheet";
-import { useCart } from "@/contex/CartContex"; // ISPRAVLJENA PUTANJA I NAZIV
+import { useCart } from "@/contex/CartContex";
 
 export function HomePage() {
   const [tours, setTours] = useState([]);
@@ -14,22 +13,22 @@ export function HomePage() {
   const [error, setError] = useState("");
   const [addingTourId, setAddingTourId] = useState(null);
 
+  // Uzimamo samo funkciju za dodavanje, jer nam samo ona treba ovde
   const { addItemToCart } = useCart(); 
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Funkcija za dodavanje u korpu, bez toasta
+  // Funkcija za dodavanje u korpu ostaje ista
   const handleAddToCart = async (tourId) => {
     setAddingTourId(tourId);
     const { success, error } = await addItemToCart(tourId);
     if (success) {
       console.log(`Successfully added tour ${tourId} to cart.`);
     } else {
-      // Kao zamenu za toast, možemo koristiti alert za prikaz greške
       alert(`Error: ${error}`);
     }
     setAddingTourId(null);
   };
 
+  // Učitavanje tura ostaje isto
   useEffect(() => {
     const fetchTours = async () => {
       setLoadingTours(true);
@@ -46,11 +45,13 @@ export function HomePage() {
     fetchTours();
   }, []);
 
- return (
+  return (
     <div className="min-h-screen w-full bg-slate-50">
-      <TouristNavbar onCartClick={() => setIsCartOpen(true)} />
+      {/* Navbar se sada poziva bez prop-ova vezanih za korpu */}
+      <TouristNavbar />
       
       <main className="flex flex-1 flex-col">
+        {/* Ostatak komponente je nepromenjen */}
         <div className="relative w-full h-[300px] md:h-[400px]">
           <img src="/images/hero-background.webp" alt="Beautiful travel destination" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center text-white p-4">
@@ -71,7 +72,7 @@ export function HomePage() {
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {tours.length > 0 ? tours.map((tour) => (
                 <Card key={tour.id} className="flex flex-col overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-                   <div className="h-52 w-full bg-slate-200 flex items-center justify-center">
+                  <div className="h-52 w-full bg-slate-200 flex items-center justify-center">
                     {tour.firstKeyPointImageUrl ? (
                        <img src={tour.firstKeyPointImageUrl} alt={tour.name} className="h-full w-full object-cover"/>
                     ) : (
@@ -122,10 +123,7 @@ export function HomePage() {
         </div>
       </main>
 
-      <ShoppingCartSheet 
-        isOpen={isCartOpen} 
-        onOpenChange={setIsCartOpen}
-      />
+      {/* ShoppingCartSheet je sada obrisan odavde */}
     </div>
   );
 }

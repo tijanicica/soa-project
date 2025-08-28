@@ -18,10 +18,11 @@ import { MyToursPage } from "./pages/MyToursPage";
 import { PositionSimulatorPage } from "./pages/PositionSimulatorPage";
 import { CommunityPage } from "./pages/CommunityPage";
 import { FollowingPage } from "./pages/FollowingPage";
-import { CartProvider } from "./contex/CartContex"; // NOVO
 
 
 import { MyPurchasedToursPage } from "./pages/MyPurchasedToursPage"; 
+import { CartProvider, useCart } from "./contex/CartContex"; 
+import { ShoppingCartSheet } from "./components/ShoppingCartSheet";
 // Pomoćna komponenta za preusmeravanje ulogovanih korisnika sa "/" putanje
 function RedirectIfLoggedIn() {
   const { auth } = useAuth();
@@ -42,12 +43,14 @@ function RedirectIfLoggedIn() {
 
 function AppContent() {
   const { auth } = useAuth();
+   const { isCartOpen, closeCart } = useCart();
 
   if (auth.isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
+    <>
     <Routes>
       {/* Login i Register su sada uvek dostupne rute */}
       <Route path="/login" element={<LoginPage />} />
@@ -82,6 +85,12 @@ function AppContent() {
       {/* Hvatanje svih nepostojećih ruta */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+
+     <ShoppingCartSheet
+        isOpen={isCartOpen}       // Vidljivost se kontroliše globalnim stanjem
+        onOpenChange={closeCart}   // Zatvaranje poziva globalnu funkciju
+      />
+    </>
   );
 }
 
