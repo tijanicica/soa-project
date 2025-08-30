@@ -1,12 +1,17 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "../hooks/useAuth";
-import { User, LogOut, Compass, Map, Search, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "../hooks/useAuth";
+import { useCart } from "@/contex/CartContex"; // Uvozimo naš unapređeni hook
+import { User, LogOut, Compass, Search, ShoppingCart } from "lucide-react";
 
+// ISPRAVKA: Komponenta više ne prima 'onCartClick' prop
 export function TouristNavbar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  
+  // ISPRAVKA: Iz konteksta sada uzimamo i 'openCart' funkciju
+  const { cartItemCount, openCart } = useCart();
 
   const handleLogout = () => {
     logout();
@@ -15,6 +20,7 @@ export function TouristNavbar() {
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-white/95 px-4 backdrop-blur-sm md:px-6">
+      {/* Levi deo navigacije - ostaje isti */}
       <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
         <Link
           to="/home"
@@ -23,43 +29,27 @@ export function TouristNavbar() {
           <Compass className="h-6 w-6 text-cyan-600" />
           <span className="font-bold">TourApp</span>
         </Link>
-        <Link
-          to="/tours/search"
-          className="text-foreground transition-colors hover:text-foreground"
-        >
-          Find Tours
-        </Link>
-        <Link
-          to="/blogs"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
+        <Link to="/blogs" className="text-muted-foreground transition-colors hover:text-foreground">
           Blogs
         </Link>
-        <Link
-          to="/community"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
+        <Link to="/community" className="text-muted-foreground transition-colors hover:text-foreground">
           Community
         </Link>
-        <Link
-          to="/network"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
+        <Link to="/network" className="text-muted-foreground transition-colors hover:text-foreground">
           My Network
         </Link>
-        <Link
-          to="/location-simulator"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Location Simulator
-        </Link>
-        <Link
-          to="/simulator"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
+        <Link to="/simulator" className="text-muted-foreground transition-colors hover:text-foreground">
           Position Simulator
         </Link>
+        <Link
+          to="/my-tours"
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
+          My Tours
+        </Link>
       </nav>
+
+      {/* Desni deo navigacije */}
       <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
         <form className="ml-auto flex-1 sm:flex-initial">
           <div className="relative">
@@ -71,6 +61,26 @@ export function TouristNavbar() {
             />
           </div>
         </form>
+
+        {/* --- AŽURIRANO DUGME ZA KORPU --- */}
+        <Button
+          onClick={openCart} // ISPRAVKA: Klik poziva 'openCart' funkciju direktno iz konteksta
+          variant="ghost"
+          size="icon"
+          className="relative rounded-full"
+        >
+          <ShoppingCart className="h-5 w-5" />
+          {/* Brojač se prikazuje samo ako ima stavki u korpi */}
+          {cartItemCount > 0 && (
+            <span 
+              className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
+            >
+              {cartItemCount}
+            </span>
+          )}
+        </Button>
+
+        {/* Dugme za profil */}
         <Button
           onClick={() => navigate("/tourist/profile")}
           variant="ghost"
@@ -79,7 +89,10 @@ export function TouristNavbar() {
         >
           <User className="h-5 w-5" />
         </Button>
+
+        {/* Dugme za logout */}
         <Button onClick={handleLogout} variant="ghost" size="sm">
+          <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>
       </div>

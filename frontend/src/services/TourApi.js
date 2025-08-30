@@ -114,3 +114,8 @@ export const getPublishedTours = async () => {
   const response = await apiClient.get('/published');
   return response.data;
 };
+
+export const getTourDetails = async (tourId) => {
+    const response = await apiClient.get(`/${tourId}`); 
+    return response.data;
+};
