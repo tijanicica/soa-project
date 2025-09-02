@@ -9,11 +9,23 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.6.8" />
+    <PackageReference Include="Geolocation.NetStandard" Version="1.1.1" />
+    <PackageReference Include="Google.Protobuf" Version="3.32.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.71.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.72.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
     <PackageReference Include="MongoDB.Driver" Version="3.4.3" />
     <PackageReference Include="Steeltoe.Discovery.Eureka" Version="3.2.8" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="IdentityModel" Version="6.0.0" />
   </ItemGroup>
+
+    <ItemGroup>
+        <Protobuf Include="..\..\..\protos\purchase.proto" GrpcServices="Client" Link="Protos\purchase.proto" />
+    </ItemGroup>
 
 </Project>

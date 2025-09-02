@@ -1,9 +1,16 @@
-﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+﻿# Build faza
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY *.csproj .
-RUN dotnet restore
+
+COPY ["services/tour-service/tour-service/tour-service.csproj", "services/tour-service/tour-service/"]
+COPY ["protos/purchase.proto", "protos/"]
+
+RUN dotnet restore "services/tour-service/tour-service/tour-service.csproj"
+
 COPY . .
-RUN dotnet publish -c Release -o /app/publish
+
+WORKDIR "/src/services/tour-service/tour-service"
+RUN dotnet publish "tour-service.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 

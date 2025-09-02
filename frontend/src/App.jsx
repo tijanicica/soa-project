@@ -19,10 +19,10 @@ import { PositionSimulatorPage } from "./pages/PositionSimulatorPage";
 import { CommunityPage } from "./pages/CommunityPage";
 import { FollowingPage } from "./pages/FollowingPage";
 
-
-import { MyPurchasedToursPage } from "./pages/MyPurchasedToursPage"; 
-import { CartProvider, useCart } from "./contex/CartContex"; 
+import { MyPurchasedToursPage } from "./pages/MyPurchasedToursPage";
+import { CartProvider, useCart } from "./contex/CartContex";
 import { ShoppingCartSheet } from "./components/ShoppingCartSheet";
+import { ActiveTourPage } from "./pages/ActiveTourPage";
 // Pomoćna komponenta za preusmeravanje ulogovanih korisnika sa "/" putanje
 function RedirectIfLoggedIn() {
   const { auth } = useAuth();
@@ -43,7 +43,7 @@ function RedirectIfLoggedIn() {
 
 function AppContent() {
   const { auth } = useAuth();
-   const { isCartOpen, closeCart } = useCart();
+  const { isCartOpen, closeCart } = useCart();
 
   if (auth.isLoading) {
     return <div>Loading...</div>;
@@ -51,44 +51,48 @@ function AppContent() {
 
   return (
     <>
-    <Routes>
-      {/* Login i Register su sada uvek dostupne rute */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Routes>
+        {/* Login i Register su sada uvek dostupne rute */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-      {/* Zaštićene rute za uloge */}
-      <Route element={<ProtectedRoute allowedRoles={["administrator"]} />}>
-        <Route path="/admin" element={<AdminPage />} />
-      </Route>
+        {/* Zaštićene rute za uloge */}
+        <Route element={<ProtectedRoute allowedRoles={["administrator"]} />}>
+          <Route path="/admin" element={<AdminPage />} />
+        </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={["guide"]} />}>
-        <Route path="/guide" element={<GuidePage />} />
-        <Route path="/guide/profile" element={<GuideProfilePage />} />
-        <Route path="/guide/tours/new" element={<CreateTourPage />} />
-        <Route path="/guide/tours/edit/:tourId" element={<EditTourPage />} />
-        <Route path="/guide/my-tours" element={<MyToursPage />} />
-      </Route>
+        <Route element={<ProtectedRoute allowedRoles={["guide"]} />}>
+          <Route path="/guide" element={<GuidePage />} />
+          <Route path="/guide/profile" element={<GuideProfilePage />} />
+          <Route path="/guide/tours/new" element={<CreateTourPage />} />
+          <Route path="/guide/tours/edit/:tourId" element={<EditTourPage />} />
+          <Route path="/guide/my-tours" element={<MyToursPage />} />
+        </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={["tourist"]} />}>
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/blogs" element={<BlogPage />} />
-        <Route path="/community" element={<CommunityPage />} />
-        <Route path="/network" element={<FollowingPage />} />
-        <Route path="/tourist/profile" element={<TouristProfilePage />} />
-        <Route path="/simulator" element={<PositionSimulatorPage />} />
-         <Route path="/my-tours" element={<MyPurchasedToursPage />} />
-      </Route>
+        <Route element={<ProtectedRoute allowedRoles={["tourist"]} />}>
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/blogs" element={<BlogPage />} />
+          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/network" element={<FollowingPage />} />
+          <Route path="/tourist/profile" element={<TouristProfilePage />} />
+          <Route path="/simulator" element={<PositionSimulatorPage />} />
+          <Route path="/my-tours" element={<MyPurchasedToursPage />} />
+          <Route
+            path="/active-tour/:executionId"
+            element={<ActiveTourPage />}
+          />
+        </Route>
 
-      {/* Glavna ruta "/" preusmerava na osnovu uloge ili na login */}
-      <Route path="/" element={<RedirectIfLoggedIn />} />
+        {/* Glavna ruta "/" preusmerava na osnovu uloge ili na login */}
+        <Route path="/" element={<RedirectIfLoggedIn />} />
 
-      {/* Hvatanje svih nepostojećih ruta */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+        {/* Hvatanje svih nepostojećih ruta */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
 
-     <ShoppingCartSheet
-        isOpen={isCartOpen}       // Vidljivost se kontroliše globalnim stanjem
-        onOpenChange={closeCart}   // Zatvaranje poziva globalnu funkciju
+      <ShoppingCartSheet
+        isOpen={isCartOpen} // Vidljivost se kontroliše globalnim stanjem
+        onOpenChange={closeCart} // Zatvaranje poziva globalnu funkciju
       />
     </>
   );
@@ -98,7 +102,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-         <CartProvider>
+        <CartProvider>
           <AppContent />
         </CartProvider>
       </AuthProvider>

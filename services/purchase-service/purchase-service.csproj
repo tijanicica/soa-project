@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+	  <PackageReference Include="Grpc.AspNetCore" Version="2.71.0" />
 	  <PackageReference Include="IdentityModel" Version="6.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
@@ -19,5 +20,9 @@
 	 <PackageReference Include="Steeltoe.Discovery.Eureka" Version="3.2.8" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
+
+    <ItemGroup>
+        <Protobuf Include="..\..\protos\purchase.proto" GrpcServices="Server" Link="Protos\purchase.proto" />
+    </ItemGroup>
 
 </Project>

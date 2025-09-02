@@ -178,10 +178,11 @@ namespace purchase_service.Services
                 .FirstOrDefaultAsync(c => c.TouristId == touristId);
         }
 
-
-        public Task<bool> HasUserPurchasedTourAsync(long touristId, string tourId)
+        // 17. tacka
+        public async Task<bool> HasUserPurchasedTourAsync(long touristId, string tourId)
         {
-            throw new NotImplementedException();
+            return await _context.PurchaseTokens
+                .AnyAsync(t => t.TouristId == touristId && t.TourId == tourId);
         }
 
         // Private helper method to communicate with tour-service
@@ -437,6 +438,8 @@ namespace purchase_service.Services
 
             return purchasedTours;
         }
+        
+        
     } // Kraj PurchaseService klase
 
 
@@ -479,4 +482,6 @@ namespace purchase_service.Services
         public string Description { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
     }
+    
+    
 }

@@ -5,10 +5,15 @@ using purchase_service.Data;
 using Steeltoe.Discovery.Client;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using purchase_service.GrpcServices;
 using purchase_service.Services;
+using PurchaseService;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+builder.Services.AddGrpc();
 
 builder.Services.AddCors(options =>
 {
@@ -26,7 +31,9 @@ builder.Services.AddDbContext<PurchaseDbContext>(options =>
 
 builder.Services.AddHttpClient("TourService", client =>
 {
+    
     var tourServiceAddress = builder.Configuration["Services:TourServiceAddress"];
+    Console.WriteLine($"--- DEBUG: Read TourServiceAddress as: '{tourServiceAddress}' ---");
     client.BaseAddress = new Uri(tourServiceAddress);
 });
 
@@ -56,7 +63,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddScoped<PurchaseService>();
+builder.Services.AddScoped<purchase_service.Services.PurchaseService>();
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers()
@@ -99,6 +106,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
 
+
+app.MapGrpcService<PurchaseVerificationService>();
+app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
 app.Run();

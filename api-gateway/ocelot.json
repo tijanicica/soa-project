@@ -53,7 +53,18 @@
       "DownstreamPathTemplate": "/{everything}"
     },
     
-    
+    {
+      "UpstreamPathTemplate": "/tours/tour-executions/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "OPTIONS" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "tour-service",
+          "Port": 8003
+        }
+      ],
+      "DownstreamPathTemplate": "/tour-executions/{everything}"
+    },
 
     {
       "UpstreamPathTemplate": "/tours/{everything}",
@@ -67,6 +78,7 @@
       ],
       "DownstreamPathTemplate": "/tours/{everything}"
     },
+    
     {
       "UpstreamPathTemplate": "/followers/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
