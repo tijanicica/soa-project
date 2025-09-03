@@ -2,7 +2,7 @@ package store
 
 import (
 	"database/sql"
-	"stakeholders-service/internal/model"
+	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/model"
 
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
@@ -152,8 +152,6 @@ func (s *Store) GetPosition(userID int64) (sql.NullFloat64, sql.NullFloat64, err
 	}
 	return lat, lon, nil
 }
-
-
 
 func (s *Store) GetUsersInfoByIDs(userIDs []int64) (map[int64]model.UserInfo, error) {
 	if len(userIDs) == 0 {

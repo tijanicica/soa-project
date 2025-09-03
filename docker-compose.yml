@@ -36,7 +36,7 @@ services:
         condition: service_healthy
       followers-service:
         condition: service_healthy
-      purchase-service: 
+      purchase-service:
         condition: service_healthy
 
   minio:
@@ -61,9 +61,14 @@ services:
   # 3. Stakeholders Servis
   stakeholders-service:
     build:
-      context: ./services/stakeholders-service
+      context: .
+      dockerfile: ./services/stakeholders-service/Dockerfile
+    ports:
+      - "8001:8001"
+      - "9091:9091"
     environment:
       - PORT=8001
+      - GRPC_PORT=9091
       - SERVICE_NAME=STAKEHOLDERS-SERVICE
       - EUREKA_URL=http://eureka-server:8761/eureka
       - DB_USER=user
@@ -93,7 +98,8 @@ services:
   # 4. Blog Servis
   blog-service:
     build:
-      context: ./services/blog-service
+      context: .
+      dockerfile: ./services/blog-service/Dockerfile
     environment:
       - PORT=8002
       - SERVICE_NAME=BLOG-SERVICE
@@ -106,6 +112,7 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - JWT_KEY=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
+      - STAKEHOLDERS_GRPC_ADDR=stakeholders-service:9091
     networks:
       - app-network
     healthcheck:
@@ -124,7 +131,8 @@ services:
 
   tour-service:
     build:
-      context: ./services/tour-service/tour-service
+      context: .
+      dockerfile: ./services/tour-service/tour-service/Dockerfile
     environment:
       - PORT=8003
       - SERVICE_NAME=TOUR-SERVICE
@@ -140,8 +148,8 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8003/health" ]
-      interval: 10s
-      timeout: 5s
+      interval: 20s
+      timeout: 10s
       retries: 5
       start_period: 10s
     depends_on:
@@ -180,19 +188,23 @@ services:
 
   purchase-service:
     build:
-      context: ./services/purchase-service
+      context: .
+      dockerfile: ./services/purchase-service/Dockerfile
+    volumes:
+      - ./certs:/https/
     environment:
       - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
-      - ASPNETCORE_URLS=http://+:8005
       - ConnectionStrings__PurchaseDatabase=Server=purchase-db;Database=purchase_db;User=user;Password=password;
       - JwtKey=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
       - Services__TourServiceAddress=http://tour-service:8003
+      - Kestrel__Endpoints__Https__Certificate__Path=/https/aspnetapp.pfx
+      - Kestrel__Endpoints__Https__Certificate__Password=tica
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8005/health"] 
-      interval: 10s
-      timeout: 5s
+      test: [ "CMD", "curl", "-f", "http://localhost:8005/health" ]
+      interval: 40s
+      timeout: 15s
       retries: 5
       start_period: 10s
     depends_on:
@@ -295,7 +307,6 @@ services:
       retries: 5
       start_period: 30s
 
-
   purchase-db:
     image: mysql:8.0
     restart: always
@@ -311,7 +322,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 20s
       timeout: 10s
       retries: 5

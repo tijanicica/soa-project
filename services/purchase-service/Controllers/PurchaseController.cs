@@ -17,10 +17,10 @@ namespace purchase_service.Controllers
     [Authorize]
     public class PurchaseController : ControllerBase
     {
-        private readonly PurchaseService _purchaseService;
+        private readonly Services.PurchaseService _purchaseService;
 
         // The service is injected here via the constructor
-        public PurchaseController(PurchaseService purchaseService)
+        public PurchaseController(Services.PurchaseService purchaseService)
         {
             _purchaseService = purchaseService;
         }
