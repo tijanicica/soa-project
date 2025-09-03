@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/model"
+	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/store"
 	"net/http"
 	"os"
 	"path/filepath"
-	"stakeholders-service/internal/model"
-	"stakeholders-service/internal/store"
 	"strconv"
 	"strings"
 	"time"
@@ -358,13 +358,10 @@ func (h *UserHandler) UnblockUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User unblocked successfully"})
 }
 
-
 type PositionDto struct {
 	Latitude  float64 `json:"latitude" binding:"required"`
 	Longitude float64 `json:"longitude" binding:"required"`
 }
-
-
 
 func (h *UserHandler) UpdatePosition(c *gin.Context) {
 	userIDValue, exists := c.Get("userID")
@@ -408,8 +405,7 @@ func (h *UserHandler) GetPosition(c *gin.Context) {
 		"longitude": lon,
 	})
 }
-  
-  
+
 func (h *UserHandler) GetUsersBatch(c *gin.Context) {
 	// Očekujemo ID-jeve kao comma-separated string, npr. /users/batch?ids=1,2,3
 	idsStr := c.Query("ids")

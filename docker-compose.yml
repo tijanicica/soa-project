@@ -61,9 +61,14 @@ services:
   # 3. Stakeholders Servis
   stakeholders-service:
     build:
-      context: ./services/stakeholders-service
+      context: .
+      dockerfile: ./services/stakeholders-service/Dockerfile
+    ports:
+      - "8001:8001"
+      - "9091:9091"
     environment:
       - PORT=8001
+      - GRPC_PORT=9091
       - SERVICE_NAME=STAKEHOLDERS-SERVICE
       - EUREKA_URL=http://eureka-server:8761/eureka
       - DB_USER=user
@@ -78,8 +83,8 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8001/health" ]
-      interval: 40s
-      timeout: 15s
+      interval: 30s
+      timeout: 10s
       retries: 5
       start_period: 10s
     depends_on:
@@ -93,7 +98,8 @@ services:
   # 4. Blog Servis
   blog-service:
     build:
-      context: ./services/blog-service
+      context: .
+      dockerfile: ./services/blog-service/Dockerfile
     environment:
       - PORT=8002
       - SERVICE_NAME=BLOG-SERVICE
@@ -106,6 +112,7 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - JWT_KEY=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
+      - STAKEHOLDERS_GRPC_ADDR=stakeholders-service:9091
     networks:
       - app-network
     healthcheck:

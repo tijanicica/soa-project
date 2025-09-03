@@ -1,9 +1,9 @@
 package store
 
 import (
-	"blog-service/internal/model"
 	"bytes"
 	"database/sql"
+	"github.com/tijanicica/soa-project/services/blog-service/internal/model"
 	"strings"
 	"time"
 )

@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"blog-service/internal/model"
-	"blog-service/internal/store"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/tijanicica/soa-project/services/blog-service/internal/model"
+	"github.com/tijanicica/soa-project/services/blog-service/internal/store"
 	"log"
 	"net/http"
 	"os"
@@ -17,8 +17,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	pbStakeholders "github.com/tijanicica/soa-project/protos"
 )
 
 type AppClaims struct {
@@ -37,8 +39,9 @@ func init() {
 }
 
 type BlogHandler struct {
-	store    *store.Store
-	s3Client *s3.S3
+	store              *store.Store
+	s3Client           *s3.S3
+	stakeholdersClient pbStakeholders.StakeholderServiceClient
 }
 
 // za komunikaciju sa stakeholders, ime usera  na blogu
@@ -49,8 +52,8 @@ type UserInfo struct {
 	ProfileImageURL sql.NullString `json:"profileImageUrl"`
 }
 
-func NewBlogHandler(store *store.Store, s3Client *s3.S3) *BlogHandler {
-	return &BlogHandler{store: store, s3Client: s3Client}
+func NewBlogHandler(store *store.Store, s3Client *s3.S3, sc pbStakeholders.StakeholderServiceClient) *BlogHandler {
+	return &BlogHandler{store: store, s3Client: s3Client, stakeholdersClient: sc}
 }
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -331,42 +334,31 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 		authorIDs[blog.AuthorID] = true
 	}
 
-	var ids []string
+	var authorIDsForGrpc []int64
 	for id := range authorIDs {
-		ids = append(ids, strconv.FormatInt(id, 10))
+		authorIDsForGrpc = append(authorIDsForGrpc, id)
 	}
 
 	// 3. Pozovi stakeholders-service da dobiješ informacije o autorima
 	// Unutar Docker mreže, koristimo ime servisa kao hostname.
-	stakeholdersURL := fmt.Sprintf("http://stakeholders-service:8001/users/batch?ids=%s", strings.Join(ids, ","))
+	grpcReq := &pbStakeholders.GetUsersInfoRequest{UserIds: authorIDsForGrpc}
+	grpcResp, err := h.stakeholdersClient.GetUsersInfo(context.Background(), grpcReq)
 
-	stakeholdersResp, err := http.Get(stakeholdersURL)
+	authorsInfo := make(map[int64]*pbStakeholders.UserInfo)
 	if err != nil {
-		log.Printf("Error fetching user data from stakeholders-service: %v", err)
-		// U slučaju greške, možemo vratiti blogove bez info o autoru
-		// ili vratiti grešku. Za sada ćemo nastaviti.
-	}
-
-	authorsInfo := make(map[int64]UserInfo)
-	if stakeholdersResp != nil && stakeholdersResp.StatusCode == http.StatusOK {
-		defer stakeholdersResp.Body.Close()
-		if err := json.NewDecoder(stakeholdersResp.Body).Decode(&authorsInfo); err != nil {
-			log.Printf("Error decoding user data: %v", err)
-		}
+		log.Printf("Error calling GetUsersInfo gRPC: %v", err)
+		// Nastavljamo sa praznom mapom, fallback će raditi
+	} else {
+		authorsInfo = grpcResp.Users
 	}
 
 	// 4. Spoji informacije o autorima sa blogovima
 	for _, blog := range filteredBlogs {
 		if author, ok := authorsInfo[blog.AuthorID]; ok {
 			blog.Author.Username = author.Username
-			if author.FirstName.Valid {
-				blog.Author.FirstName = author.FirstName.String
-			}
-			if author.ProfileImageURL.Valid {
-				blog.Author.ProfileImageURL = author.ProfileImageURL.String
-			}
+			blog.Author.FirstName = author.FirstName
+			blog.Author.ProfileImageURL = author.ProfileImageUrl
 		} else {
-			// Fallback ako autor nije pronađen
 			blog.Author.Username = "Unknown Author"
 		}
 	}

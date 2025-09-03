@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option go_package = "github.com/tijanicica/soa-project/protos";
+
+package stakeholders;
+
+// Servis koji blog-service (i drugi) može da pozove
+service StakeholderService {
+  // Metoda koja vraća informacije o više korisnika
+  rpc GetUsersInfo (GetUsersInfoRequest) returns (GetUsersInfoResponse);
+}
+
+// Poruka koja se šalje kao zahtev
+message GetUsersInfoRequest {
+  repeated int64 user_ids = 1;
+}
+
+// Poruka sa informacijama o jednom korisniku
+message UserInfo {
+  int64 id = 1;
+  string username = 2;
+  string first_name = 3;
+  string profile_image_url = 4;
+}
+
+// Poruka koja se vraća kao odgovor (mapa ID-jeva u UserInfo)
+message GetUsersInfoResponse {
+  map<int64, UserInfo> users = 1;
+}
