@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -60,10 +60,24 @@ export function ActiveTourPage() {
 
   const intervalRef = useRef(null);
 
+  const handleTourEnd = useCallback(
+    (status) => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      alert(`Tour ${status}!`);
+      setTimeout(() => {
+        navigate("/my-purchased-tours");
+      }, 5);
+    },
+    [navigate]
+  );
+
   // Glavna funkcija za proveru i ažuriranje pozicije, poziva se periodično
   const checkPosition = async () => {
     try {
-      // 1. Dobavi trenutnu poziciju iz simulatora
+      console.log("Checking position..."); // Dobra praksa za debagovanje
       const posData = await getMyPosition();
       if (!posData.latitude.Valid || !posData.longitude.Valid) return;
 
@@ -73,25 +87,25 @@ export function ActiveTourPage() {
       };
       setUserPosition([currentPosition.latitude, currentPosition.longitude]);
 
-      // 2. Pošalji poziciju backendu da proveri da li smo blizu ključne tačke
       const updatedExecution = await updateTourPosition(
         executionId,
         currentPosition
       );
+
+      // --- IZMENJENO: Dodajemo log da vidimo šta API vraća ---
+      console.log("API Response from updateTourPosition:", updatedExecution);
+
       setExecution(updatedExecution);
 
-      // 3. Ako je tura završena, zaustavi interval i preusmeri korisnika
+      // Proveravamo da li je tura završena nakon ažuriranja
       if (
         updatedExecution.status === "completed" ||
         updatedExecution.status === "abandoned"
       ) {
-        clearInterval(intervalRef.current);
-        alert(`Tour ${updatedExecution.status}!`);
-        navigate("/my-purchased-tours");
+        handleTourEnd(updatedExecution.status); // Koristimo novu funkciju
       }
     } catch (err) {
       console.error("Error updating position:", err);
-      // Može se dodati logika za zaustavljanje intervala nakon više neuspelih pokušaja
     }
   };
 
@@ -100,6 +114,20 @@ export function ActiveTourPage() {
     const fetchInitialData = async () => {
       try {
         const execData = await getTourExecution(executionId);
+
+        // --- KLJUČNA ISPRAVKA: Provera statusa ODMAH nakon učitavanja ---
+        // Ako je tura već završena ili napuštena, odmah pozovi logiku za kraj.
+        if (
+          execData.status === "completed" ||
+          execData.status === "abandoned"
+        ) {
+          setExecution(execData); // Postavi state da korisnik vidi finalno stanje pre redirecta
+          setLoading(false); // Prestani sa učitavanjem
+          handleTourEnd(execData.status); // Pokaži alert i preusmeri
+          return; // Prekini dalje izvršavanje funkcije
+        }
+
+        // Ako tura nije završena, nastavi sa normalnim učitavanjem
         setExecution(execData);
         setUserPosition([
           execData.currentPosition.latitude,
@@ -113,7 +141,7 @@ export function ActiveTourPage() {
         if (execData.status === "active") {
           // Odmah pokreni prvu proveru, ne čekaj 10 sekundi
           checkPosition();
-          intervalRef.current = setInterval(checkPosition, 10000); // Nastavi svakih 10 sekundi
+          intervalRef.current = setInterval(checkPosition, 10000);
         }
       } catch (err) {
         setError(
@@ -128,12 +156,14 @@ export function ActiveTourPage() {
     fetchInitialData();
 
     // Očisti interval kada se komponenta zatvori (npr. korisnik ode na drugu stranicu)
+    // Očisti interval
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [executionId]);
+    // Dodajemo handleTourEnd u dependency array
+  }, [executionId, handleTourEnd]);
 
   const handleAbandonTour = async () => {
     if (
@@ -142,10 +172,9 @@ export function ActiveTourPage() {
       )
     ) {
       try {
+        // Ne treba nam povratna vrednost jer će handleTourEnd odraditi posao
         await abandonTour(executionId);
-        clearInterval(intervalRef.current);
-        alert("Tour abandoned.");
-        navigate("/my-purchased-tours");
+        handleTourEnd("abandoned"); // Odmah pozivamo logiku za kraj
       } catch (err) {
         console.error("Failed to abandon tour:", err);
         alert("Could not abandon the tour. Please try again.");
