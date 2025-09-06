@@ -62,7 +62,7 @@ function AppContent() {
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["guide"]} />}>
-          <Route path="/guide" element={<GuidePage />} />
+          <Route path="/guide" element={<MyToursPage />} />
           <Route path="/guide/profile" element={<GuideProfilePage />} />
           <Route path="/guide/tours/new" element={<CreateTourPage />} />
           <Route path="/guide/tours/edit/:tourId" element={<EditTourPage />} />

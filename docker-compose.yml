@@ -203,8 +203,8 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8005/health" ]
-      interval: 40s
-      timeout: 15s
+      interval: 30s
+      timeout: 10s
       retries: 5
       start_period: 10s
     depends_on:
