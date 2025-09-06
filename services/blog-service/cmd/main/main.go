@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"blog-service/internal/handler"
-	"blog-service/internal/store"
+	"github.com/tijanicica/soa-project/services/blog-service/internal/handler"
+	"github.com/tijanicica/soa-project/services/blog-service/internal/store"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,6 +21,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+
+	pbStakeholders "github.com/tijanicica/soa-project/protos"
 )
 
 func registerWithEureka(serviceName string, port int) {
@@ -179,7 +183,16 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})
 	})
 
-	blogHandler := handler.NewBlogHandler(dbStore, s3Client)
+	// GRPC DODALI
+	stakeholdersGrpcAddr := os.Getenv("STAKEHOLDERS_GRPC_ADDR") // Dodaćemo u docker-compose
+	conn, err := grpc.Dial(stakeholdersGrpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect to gRPC server: %v", err)
+	}
+	defer conn.Close()
+	stakeholdersClient := pbStakeholders.NewStakeholderServiceClient(conn)
+
+	blogHandler := handler.NewBlogHandler(dbStore, s3Client, stakeholdersClient)
 
 	authRoutes := router.Group("/")
 	authRoutes.Use(handler.AuthMiddleware())

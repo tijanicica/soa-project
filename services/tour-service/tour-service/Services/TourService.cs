@@ -6,11 +6,15 @@ using System.Text.Json.Serialization;
 namespace tour_service.Services
 {
 
+
     public class AddReviewResult
     {
         public bool Success { get; set; }
         public string ErrorMessage { get; set; } = string.Empty;
     }
+
+
+
     public class TourService
     {
         private readonly IMongoCollection<Tour> _toursCollection;
@@ -67,7 +71,7 @@ namespace tour_service.Services
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
-        public async Task<List<PublishedTourDto>> GetAllPublishedToursAsync()
+        /*public async Task<List<PublishedTourDto>> GetAllPublishedToursAsync()
         {
             // 1. Filtriraj samo ture koje su "published"
             var publishedTours = await _toursCollection.Find(t => t.Status == "published").ToListAsync();
@@ -84,6 +88,37 @@ namespace tour_service.Services
                 // Uzmi ime i sliku samo PRVE ključne tačke, ako postoji
                 FirstKeyPointName = tour.KeyPoints.FirstOrDefault()?.Name,
                 FirstKeyPointImageUrl = tour.KeyPoints.FirstOrDefault()?.ImageUrl
+            }).ToList();
+
+            return tourDtos;
+        }*/
+
+        public async Task<List<PublishedTourDto>> GetAllPublishedToursAsync()
+        {
+            // 1. Filtriraj samo ture koje su "published"
+            var publishedTours = await _toursCollection.Find(t => t.Status == "published").ToListAsync();
+
+            // 2. Mapiraj svaku turu u naš kompletan DTO
+            var tourDtos = publishedTours.Select(tour => new PublishedTourDto
+            {
+                // Osnovni podaci
+                Id = tour.Id,
+                Name = tour.Name,
+                Description = tour.Description,
+                Difficulty = tour.Difficulty,
+                Tags = tour.Tags,
+                Price = tour.Price,
+
+                // Podaci koje ste tražili da se dodaju
+                DistanceKm = tour.DistanceKm,
+                TransportTimes = tour.TransportTimes,
+
+                // Podaci o početnoj tački
+                FirstKeyPointName = tour.KeyPoints.FirstOrDefault()?.Name,
+                FirstKeyPointImageUrl = tour.KeyPoints.FirstOrDefault()?.ImageUrl,
+
+                // Reviews = tour.Reviews // Za buduću upotrebu
+
             }).ToList();
 
             return tourDtos;

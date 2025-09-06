@@ -7,6 +7,7 @@ using tour_service.Services;
 namespace tour_service.Controllers
 {
 
+
     [ApiController]
     [Route("[controller]")]
     public class ToursController : ControllerBase
@@ -18,6 +19,8 @@ namespace tour_service.Controllers
         {
             _tourService = tourService;
         }
+
+
 
         // POST /tours
         [HttpPost("create")]
@@ -303,6 +306,7 @@ namespace tour_service.Controllers
             return NoContent();
         }
 
+
         [HttpPost("{tourId:length(24)}/reviews")]
         [Authorize(Roles = "tourist")]
         public async Task<IActionResult> AddReview(string tourId, [FromBody] CreateReviewDto reviewDto)
@@ -330,5 +334,36 @@ namespace tour_service.Controllers
 
             return Ok();
         }
+
+                        public class TourDetailsDto
+                {
+                    public string Id { get; set; }
+                    public string Name { get; set; }
+                    public double Price { get; set; }
+                    public string Status { get; set; }
+                }
+
+            [HttpGet("details-for-purchase/{id:length(24)}")]
+            [AllowAnonymous] // This endpoint can be called by another service without a user token
+            public async Task<ActionResult<TourDetailsDto>> GetTourDetailsForPurchase(string id)
+            {
+                var tour = await _tourService.GetTourAsync(id);
+
+                if (tour is null)
+                {
+                    return NotFound("Tour not found.");
+                }
+
+                var tourDetails = new TourDetailsDto
+                {
+                    Id = tour.Id,
+                    Name = tour.Name,
+                    Price = tour.Price,
+                    Status = tour.Status
+                };
+
+                return Ok(tourDetails);
+            }
+
     }
 }

@@ -1,6 +1,20 @@
 {
   "Routes": [
-  
+
+
+        {
+      "UpstreamPathTemplate": "/purchase/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "DELETE", "PUT", "OPTIONS" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "purchase-service",
+          "Port": 8005
+        }
+      ],
+      "DownstreamPathTemplate": "/purchase/{everything}"
+    },
+
     {
       "UpstreamPathTemplate": "/stakeholders/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
@@ -13,6 +27,8 @@
       ],
       "DownstreamPathTemplate": "/{everything}"
     },
+
+    
     {
       "UpstreamPathTemplate": "/tours/files/upload",
       "UpstreamHttpMethod": [ "POST", "OPTIONS" ],
@@ -37,6 +53,19 @@
       ],
       "DownstreamPathTemplate": "/{everything}"
     },
+    
+    {
+      "UpstreamPathTemplate": "/tours/tour-executions/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "OPTIONS" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "tour-service",
+          "Port": 8003
+        }
+      ],
+      "DownstreamPathTemplate": "/tour-executions/{everything}"
+    },
 
     {
       "UpstreamPathTemplate": "/tours/{everything}",
@@ -50,6 +79,7 @@
       ],
       "DownstreamPathTemplate": "/tours/{everything}"
     },
+    
     {
       "UpstreamPathTemplate": "/followers/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],

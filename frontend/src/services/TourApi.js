@@ -101,6 +101,15 @@ export const reactivateTour = async (tourId) => {
   return response.data;
 };
 
+export const updateTouristPosition = async (locationData) => {
+  const response = await apiClient.put('/position', locationData);
+  return response.data;
+};
+
+
+export const getTouristPosition = async () => {
+  const response = await apiClient.get('/position');
+};
 export const getPublishedTours = async () => {
   const response = await apiClient.get('/published');
   return response.data;
@@ -111,4 +120,10 @@ export const addReview = async (tourId, reviewData) => {
   // Mi šaljemo samo tourId i podatke, jer TourApi.js već dodaje /tours/ prefiks.
   const response = await apiClient.post(`/${tourId}/reviews`, reviewData);
   return response.data;
+};
+
+export const getTourDetails = async (tourId) => {
+    const response = await apiClient.get(`/${tourId}`); 
+    return response.data;
+
 };

@@ -63,8 +63,11 @@ namespace tour_service.Models
         public int DurationMinutes { get; set; }
     }
 
+    // U fajlu: tour-service/Controllers/ToursController.cs
+
     public class PublishedTourDto
     {
+        // --- Postojeća polja ---
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
@@ -73,5 +76,16 @@ namespace tour_service.Models
         public double Price { get; set; }
         public string? FirstKeyPointName { get; set; }
         public string? FirstKeyPointImageUrl { get; set; }
+
+        // --- DODATA POLJA PREMA VAŠEM ZAHTEVU ---
+
+        // Dužina ture u kilometrima
+        public double DistanceKm { get; set; }
+
+        // Lista sa vremenima prolaska (npr. 30min peške, 10min autom)
+        public List<TransportTime> TransportTimes { get; set; } = new();
+
+        // Kada budete imali Reviews, dodajte i sledeću liniju:
+        // public List<Review> Reviews { get; set; } = new();
     }
 }

@@ -75,3 +75,21 @@ export const uploadProfileImage = (file) => {
   });
 };
 
+export const getMyPosition = async () => {
+  const response = await apiClient.get('/position');
+  return response.data;
+};
+
+// Ažurira SAMO poziciju korisnika
+export const updateMyPosition = async (latitude, longitude) => {
+  const response = await apiClient.put('/position', { latitude, longitude });
+  return response.data;
+};
+
+export const getUsersByIds = (ids) => {
+  if (!ids || ids.length === 0) {
+    return Promise.resolve({ data: {} }); // Vrati prazan objekat ako nema ID-jeva
+  }
+  const idString = ids.join(',');
+  return apiClient.get(`/users/batch?ids=${idString}`);
+};

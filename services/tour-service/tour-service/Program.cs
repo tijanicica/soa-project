@@ -9,9 +9,22 @@ using Steeltoe.Discovery.Client;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using tour_service.Services;
+using PurchaseService;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddGrpcClient<PurchaseVerification.PurchaseVerificationClient>(o =>
+    {
+        // Sada se povezujemo na HTTPS port
+        o.Address = new Uri("https://purchase-service:8006"); 
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        // Ovo je ključno: kažemo klijentu da veruje self-signed dev sertifikatu
+        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+    });
 
 
 builder.Services.AddCors(options =>
@@ -33,6 +46,16 @@ builder.Services.AddSingleton<TourService>(sp =>
 
     var dbName = databaseSettings["DatabaseName"];
     return new TourService(client, dbName);
+});
+
+builder.Services.AddSingleton<TourExecutionService>(sp =>
+{
+    var mongoClient = sp.GetRequiredService<IMongoClient>();
+    var purchaseGrpcClient = sp.GetRequiredService<PurchaseVerification.PurchaseVerificationClient>();
+    
+    var dbName = builder.Configuration.GetSection("DatabaseSettings")["DatabaseName"];
+    
+    return new TourExecutionService(mongoClient, dbName, purchaseGrpcClient);
 });
 
 

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "PurchaseService";
+
+package purchase;
+
+// Servis koji tour-service može da pozove
+service PurchaseVerification {
+  // Metoda koja proverava da li je korisnik kupio turu
+  rpc HasUserPurchasedTour (PurchaseCheckRequest) returns (PurchaseCheckResponse);
+}
+
+// Poruka koja se šalje kao zahtev
+message PurchaseCheckRequest {
+  int64 tourist_id = 1;
+  string tour_id = 2;
+}
+
+// Poruka koja se vraća kao odgovor
+message PurchaseCheckResponse {
+  bool has_purchased = 1;
+}

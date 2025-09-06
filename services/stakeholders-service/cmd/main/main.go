@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,9 +14,13 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hudl/fargo"
+	pb "github.com/tijanicica/soa-project/protos"
+	grpcServer "github.com/tijanicica/soa-project/services/stakeholders-service/internal/grpc"
+	"google.golang.org/grpc"
+
 	// NOVI IMPORT: Uvozimo naš paket za rad sa bazom
-	"stakeholders-service/internal/handler"
-	"stakeholders-service/internal/store"
+	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/handler"
+	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/store"
 )
 
 func registerWithEureka(serviceName string, port int) {
@@ -134,6 +139,7 @@ func main() {
 
 	router.POST("/register", userHandler.Register)
 	router.POST("/login", userHandler.Login)
+	router.GET("/users/batch", userHandler.GetUsersBatch)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"service": serviceName, "status": "UP"})
 	})
@@ -147,6 +153,13 @@ func main() {
 
 	}
 
+	positionRoutes := router.Group("/position")
+	positionRoutes.Use(handler.AuthMiddleware())
+	{
+		positionRoutes.GET("", userHandler.GetPosition)
+		positionRoutes.PUT("", userHandler.UpdatePosition)
+	}
+
 	// ZAŠTIĆENE RUTE
 	profileRoutes := router.Group("/profile")
 	profileRoutes.Use(handler.AuthMiddleware())
@@ -157,6 +170,24 @@ func main() {
 
 	}
 
+	// za GRPC
+	go func() {
+		grpcPort := os.Getenv("GRPC_PORT") // Dodaćemo ovo u docker-compose
+		lis, err := net.Listen("tcp", ":"+grpcPort)
+		if err != nil {
+			log.Fatalf("failed to listen for gRPC: %v", err)
+		}
+
+		s := grpc.NewServer()
+		stakeholderServer := grpcServer.NewServer(dbStore)
+		pb.RegisterStakeholderServiceServer(s, stakeholderServer)
+
+		log.Printf("gRPC server listening at %v", lis.Addr())
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve gRPC: %v", err)
+		}
+	}()
 	log.Printf("%s starting on port %d", serviceName, port)
+
 	router.Run(fmt.Sprintf(":%d", port))
 }

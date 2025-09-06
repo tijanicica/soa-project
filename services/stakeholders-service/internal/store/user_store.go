@@ -2,9 +2,11 @@ package store
 
 import (
 	"database/sql"
-	"stakeholders-service/internal/model"
+	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/model"
 
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
+	"strings"
 )
 
 func (s *Store) CreateUser(user *model.User) error {
@@ -128,4 +130,63 @@ func (s *Store) GetUserByEmail(email string) (*model.User, error) {
 func (s *Store) UnblockUser(userID int64) error {
 	_, err := s.db.Exec("UPDATE users SET is_active = TRUE WHERE id = ?", userID)
 	return err
+}
+
+func (s *Store) UpdatePosition(userID int64, latitude, longitude float64) error {
+	_, err := s.db.Exec("UPDATE users SET latitude = ?, longitude = ? WHERE id = ?", latitude, longitude, userID)
+	return err
+}
+
+func (s *Store) GetPosition(userID int64) (sql.NullFloat64, sql.NullFloat64, error) {
+	var lat, lon sql.NullFloat64
+	// Ovaj upit dohvata SAMO latitude i longitude
+	row := s.db.QueryRow("SELECT latitude, longitude FROM users WHERE id = ?", userID)
+	err := row.Scan(&lat, &lon)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Nije greška ako korisnik postoji ali nema poziciju (NULL vrednosti)
+			// sql.ErrNoRows će se desiti samo ako korisnik sa tim ID-jem ne postoji uopšte
+			return lat, lon, nil
+		}
+		return lat, lon, err
+	}
+	return lat, lon, nil
+}
+
+func (s *Store) GetUsersInfoByIDs(userIDs []int64) (map[int64]model.UserInfo, error) {
+	if len(userIDs) == 0 {
+		return make(map[int64]model.UserInfo), nil
+	}
+
+	// Kreiramo string sa placeholderima: "?,?,?"
+	placeholders := strings.Repeat("?,", len(userIDs)-1) + "?"
+	query := fmt.Sprintf(`
+		SELECT u.id, u.username, p.first_name, p.profile_image_url
+		FROM users u
+		LEFT JOIN profiles p ON u.id = p.user_id
+		WHERE u.id IN (%s)
+	`, placeholders)
+
+	// Moramo da konvertujemo []int64 u []interface{} za Query
+	args := make([]interface{}, len(userIDs))
+	for i, id := range userIDs {
+		args[i] = id
+	}
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	usersInfo := make(map[int64]model.UserInfo)
+	for rows.Next() {
+		var info model.UserInfo
+		if err := rows.Scan(&info.ID, &info.Username, &info.FirstName, &info.ProfileImageURL); err != nil {
+			return nil, err
+		}
+		usersInfo[info.ID] = info
+	}
+
+	return usersInfo, nil
 }
