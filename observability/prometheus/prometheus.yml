@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "stakeholders-service"
+    static_configs:
+      - targets: ["stakeholders-service:8001"] # Adresa unutar Docker mreže
+
+  - job_name: "blog-service"
+    static_configs:
+      - targets: ["blog-service:8002"]
+
+  - job_name: "tour-service"
+    static_configs:
+      - targets: ["tour-service:8003"]
+
+  - job_name: "followers-service"
+    static_configs:
+      - targets: ["followers-service:8004"]
+
+  - job_name: "purchase-service"
+    static_configs:
+      - targets: ["purchase-service:8005"]

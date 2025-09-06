@@ -1,20 +1,25 @@
-﻿# Koristimo .NET 8.0 SDK za build
+﻿# Build faza
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Kopiraj SVE odjednom (i .csproj i .cs fajlove)
+# 1. Kopiraj samo .csproj fajl
+COPY ["services/followers-service/followers-service/followers-service.csproj", "services/followers-service/followers-service/"]
+
+# 2. Restore zavisnosti (brzo jer koristi Docker cache)
+RUN dotnet restore "services/followers-service/followers-service/followers-service.csproj"
+
+# 3. Kopiraj ostatak koda
 COPY . .
 
-# Pokreni restore I publish u jednom koraku.
-# Ovo osigurava da publish vidi pakete koje je restore upravo preuzeo.
-RUN dotnet restore
-RUN dotnet publish -c Release -o /app/publish
+# 4. Publish aplikaciju
+WORKDIR "/src/services/followers-service/followers-service"
+RUN dotnet publish "followers-service.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 
-# Koristimo .NET 8.0 Runtime za izvršavanje
+# Finalna faza
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 
-# Instaliraj curl za healthcheck
+# Instaliraj alate
 USER root
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 USER app

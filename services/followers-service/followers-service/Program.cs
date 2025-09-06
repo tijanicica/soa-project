@@ -1,12 +1,51 @@
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using followers_service.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Neo4j.Driver;
 using Steeltoe.Discovery.Client;
 using System.Text;
+using OpenTelemetry.Exporter;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// === POČETAK OBSERVABILITY KONFIGURACIJE ===
+
+// 1. Definiši ime servisa. Čitamo ga iz docker-compose.yml
+var serviceName = builder.Configuration["SERVICE_NAME"] ?? "tour-service";
+var serviceVersion = "1.0.0";
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(
+        serviceName: serviceName,
+        serviceVersion: serviceVersion,
+        serviceInstanceId: Environment.MachineName))
+    
+    // 2. Konfiguracija za TRACING sa eksplicitnim Jaeger endpointom
+    .WithTracing(tracing => tracing
+        
+        .AddAspNetCoreInstrumentation(options =>
+        {
+            // Filtriraj health check endpointe
+            options.Filter = (httpContext) => !httpContext.Request.Path.Value?.Contains("/health") ?? true;
+        })
+        .AddHttpClientInstrumentation()
+        .AddJaegerExporter(options =>
+        {
+            options.Endpoint = new Uri("http://jaeger:14268/api/traces");
+            options.Protocol = JaegerExportProtocol.HttpBinaryThrift;
+        }))
+        
+    // 3. Konfiguracija za METRIKE
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddPrometheusExporter());
+// === KRAJ OBSERVABILITY KONFIGURACIJE ===
+
 
 // --- Konfiguracija Neo4j ---
 builder.Services.AddSingleton<IDriver>(provider =>
@@ -108,7 +147,19 @@ if (app.Environment.IsDevelopment())
 // Dodaj middleware za autentikaciju i autorizaciju
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.Use(async (context, next) =>
+{
+    using var activity = System.Diagnostics.Activity.Current;
+    if (activity != null)
+    {
+        activity.SetTag("service.name", serviceName);
+        activity.SetTag("service.version", serviceVersion);
+        activity.SetTag("http.request.method", context.Request.Method);
+        activity.SetTag("http.request.path", context.Request.Path);
+    }
+    await next();
+});
+app.MapPrometheusScrapingEndpoint();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
 
