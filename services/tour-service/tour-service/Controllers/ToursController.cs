@@ -14,6 +14,7 @@ namespace tour_service.Controllers
     {
         private readonly TourService _tourService;
 
+
         public ToursController(TourService tourService)
         {
             _tourService = tourService;
@@ -305,6 +306,35 @@ namespace tour_service.Controllers
             return NoContent();
         }
 
+
+        [HttpPost("{tourId:length(24)}/reviews")]
+        [Authorize(Roles = "tourist")]
+        public async Task<IActionResult> AddReview(string tourId, [FromBody] CreateReviewDto reviewDto)
+        {
+            var touristIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            // ISPRAVLJENA LINIJA
+            if (!long.TryParse(touristIdString, out long touristId))
+            {
+                return Unauthorized("Invalid token.");
+            }
+
+            var hasCompleted = await _tourService.HasTouristCompletedTourAsync(touristId, tourId);
+            if (!hasCompleted)
+            {
+                return new ObjectResult("You can only review tours that you have completed.") { StatusCode = 403 };
+            }
+
+            var result = await _tourService.AddReviewAsync(tourId, touristId, reviewDto);
+
+            if (!result.Success)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+
+            return Ok();
+        }
+
                         public class TourDetailsDto
                 {
                     public string Id { get; set; }
@@ -334,5 +364,6 @@ namespace tour_service.Controllers
 
                 return Ok(tourDetails);
             }
+
     }
 }

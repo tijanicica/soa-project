@@ -1,6 +1,7 @@
 {
   "Routes": [
 
+
         {
       "UpstreamPathTemplate": "/purchase/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "DELETE", "PUT", "OPTIONS" ],
@@ -30,7 +31,7 @@
     
     {
       "UpstreamPathTemplate": "/tours/files/upload",
-      "UpstreamHttpMethod": [ "POST", "OPTIONS" ], 
+      "UpstreamHttpMethod": [ "POST", "OPTIONS" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
