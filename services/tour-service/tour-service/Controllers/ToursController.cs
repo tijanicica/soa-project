@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using tour_service.Models;
@@ -12,6 +12,7 @@ namespace tour_service.Controllers
     public class ToursController : ControllerBase
     {
         private readonly TourService _tourService;
+
 
         public ToursController(TourService tourService)
         {
@@ -186,7 +187,7 @@ namespace tour_service.Controllers
         }
 
         [HttpGet("published")]
-        [AllowAnonymous] // Eksplicitno ka�emo da ne treba autorizacija
+        [AllowAnonymous] // Eksplicitno kažemo da ne treba autorizacija
         public async Task<ActionResult<List<PublishedTourDto>>> GetPublishedTours()
         {
             var tours = await _tourService.GetAllPublishedToursAsync();
@@ -300,6 +301,34 @@ namespace tour_service.Controllers
                 return BadRequest("Could not delete keypoint.");
             }
             return NoContent();
+        }
+
+        [HttpPost("{tourId:length(24)}/reviews")]
+        [Authorize(Roles = "tourist")]
+        public async Task<IActionResult> AddReview(string tourId, [FromBody] CreateReviewDto reviewDto)
+        {
+            var touristIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            // ISPRAVLJENA LINIJA
+            if (!long.TryParse(touristIdString, out long touristId))
+            {
+                return Unauthorized("Invalid token.");
+            }
+
+            var hasCompleted = await _tourService.HasTouristCompletedTourAsync(touristId, tourId);
+            if (!hasCompleted)
+            {
+                return new ObjectResult("You can only review tours that you have completed.") { StatusCode = 403 };
+            }
+
+            var result = await _tourService.AddReviewAsync(tourId, touristId, reviewDto);
+
+            if (!result.Success)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+
+            return Ok();
         }
     }
 }

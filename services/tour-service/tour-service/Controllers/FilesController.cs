@@ -9,7 +9,8 @@ namespace tour_service.Controllers
 
     [ApiController]
     [Route("[controller]")]
-    [Authorize(Roles = "guide")]
+    [Authorize(Roles = "guide,tourist")] // <-- DOZVOLJAVAMO I ULOGU "tourist"
+   
     public class FilesController : ControllerBase
     {
         private readonly IAmazonS3 _s3Client;

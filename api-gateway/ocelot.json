@@ -1,5 +1,6 @@
 {
   "Routes": [
+  
     {
       "UpstreamPathTemplate": "/stakeholders/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
@@ -14,7 +15,7 @@
     },
     {
       "UpstreamPathTemplate": "/tours/files/upload",
-      "UpstreamHttpMethod": [ "POST", "OPTIONS" ], 
+      "UpstreamHttpMethod": [ "POST", "OPTIONS" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {

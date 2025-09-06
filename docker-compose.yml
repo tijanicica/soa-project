@@ -36,6 +36,8 @@ services:
         condition: service_healthy
       followers-service:
         condition: service_healthy
+     # tour-execution-service: # <-- DODAJTE OVU LINIJU
+        #condition: service_healthy
 
   minio:
     image: minio/minio:latest

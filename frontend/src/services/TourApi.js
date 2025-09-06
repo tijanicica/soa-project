@@ -105,3 +105,10 @@ export const getPublishedTours = async () => {
   const response = await apiClient.get('/published');
   return response.data;
 };
+
+export const addReview = async (tourId, reviewData) => {
+  // Napomena: API endpoint je /tours/{tourId}/reviews
+  // Mi šaljemo samo tourId i podatke, jer TourApi.js već dodaje /tours/ prefiks.
+  const response = await apiClient.post(`/${tourId}/reviews`, reviewData);
+  return response.data;
+};
