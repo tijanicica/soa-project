@@ -1,33 +1,55 @@
 import { useEffect, useState } from "react";
-
 import { TouristNavbar } from "../components/TouristNavbar.jsx";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getPublishedTours } from "../services/TourApi.js";
 import { ReviewForm } from "../components/ReviewForm.jsx";
 import { useAuth } from "../hooks/useAuth.js";
-
-import { MapPin, BarChart3, Coins, Loader2, ShoppingCart, Route, Clock } from "lucide-react";
+import {
+  MapPin,
+  Coins,
+  Loader2,
+  ShoppingCart,
+  Route,
+  Clock,
+} from "lucide-react";
 import { useCart } from "@/contex/CartContex";
 
+// Pomoćna komponenta za prikaz JEDNE kartice ture sa SVOM funkcionalnošću
+function TourCard({ tour, onReviewClick, onAddToCart, isAdding }) {
+  const { auth } = useAuth(); // Podaci o ulogovanom korisniku
 
-// Pomoćna komponenta za prikaz jedne kartice ture
-function TourCard({ tour, onReviewClick }) {
-  const { auth } = useAuth(); // Uzimamo podatke o ulogovanom korisniku
+  const shortDescription =
+    tour.description.length > 100
+      ? `${tour.description.substring(0, 100)}...`
+      : tour.description;
 
-  const shortDescription = tour.description.length > 100 
-    ? `${tour.description.substring(0, 100)}...` 
-    : tour.description;
-  
-  const coverImage = tour.firstKeyPointImageUrl || '/placeholder.png'; // Koristi sliku prve tačke ili lokalni placeholder
+  const coverImage = tour.firstKeyPointImageUrl || "/placeholder.png";
 
   return (
     <Card className="flex flex-col overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
+      {/* Slika ture */}
       <div className="h-52 w-full bg-slate-200 flex items-center justify-center">
-        <img src={coverImage} alt={tour.name} className="h-full w-full object-cover"/>
+        {tour.firstKeyPointImageUrl ? (
+          <img
+            src={coverImage}
+            alt={tour.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <MapPin className="h-16 w-16 text-slate-400" />
+        )}
       </div>
-      
+
+      {/* Naziv i opis */}
       <CardHeader>
         <CardTitle className="text-xl">{tour.name}</CardTitle>
         <CardDescription className="pt-1 h-20 overflow-hidden text-ellipsis">
@@ -35,36 +57,85 @@ function TourCard({ tour, onReviewClick }) {
         </CardDescription>
       </CardHeader>
 
+      {/* Detalji o turi */}
       <CardContent className="flex-grow space-y-4">
         <div className="flex flex-wrap gap-2">
-          {tour.tags?.map(tag => <Badge key={tag} variant="outline">{tag}</Badge>)}
+          {tour.tags?.map((tag) => (
+            <Badge key={tag} variant="outline">
+              {tag}
+            </Badge>
+          ))}
         </div>
 
         <div className="space-y-2 text-sm text-muted-foreground pt-2 border-t">
+          <div className="flex items-center gap-2">
+            <Coins className="h-4 w-4 text-cyan-700" />
+            <span>
+              Price:{" "}
+              <strong>
+                {tour.price > 0 ? `${tour.price.toFixed(2)} RSD` : "Free"}
+              </strong>
+            </span>
+          </div>
+          {tour.firstKeyPointName && (
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-cyan-700"/>
-              <span>Difficulty: <strong>{tour.difficulty}</strong></span>
+              <MapPin className="h-4 w-4 text-cyan-700" />
+              <span>
+                Starts at: <strong>{tour.firstKeyPointName}</strong>
+              </span>
             </div>
+          )}
+          {tour.distanceKm > 0 && (
             <div className="flex items-center gap-2">
-              <Coins className="h-4 w-4 text-cyan-700"/>
-              <span>Price: <strong>{tour.price > 0 ? `${tour.price.toFixed(2)} RSD` : 'Free'}</strong></span>
+              <Route className="h-4 w-4 text-cyan-700" />
+              <span>
+                Distance: <strong>{tour.distanceKm.toFixed(1)} km</strong>
+              </span>
             </div>
-            {tour.firstKeyPointName && (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-cyan-700"/>
-                <span>Starts at: <strong>{tour.firstKeyPointName}</strong></span>
-              </div>
-            )}
+          )}
+          {tour.transportTimes && tour.transportTimes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-cyan-700" />
+              <span>
+                Est. Time:{" "}
+                <strong>
+                  {tour.transportTimes[0].durationMinutes} min (
+                  {tour.transportTimes[0].transportType})
+                </strong>
+              </span>
+            </div>
+          )}
         </div>
       </CardContent>
-      
-      <CardFooter>
-        {/* Dugme se prikazuje samo ako je korisnik ulogovan i ako je turista */}
-        {auth.user?.role === 'tourist' && (
-          <Button className="w-full" onClick={() => onReviewClick(tour)}>
-            Leave a Review
+
+      {/* Dugmad - Recenzija i Dodaj u korpu */}
+      <CardFooter className="p-4 border-t mt-auto bg-slate-50">
+        <div className="w-full flex items-center gap-2">
+          {/* Dugme za dodavanje u korpu se uvek prikazuje */}
+          <Button
+            className="w-full"
+            onClick={() => onAddToCart(tour.id)}
+            disabled={isAdding}
+          >
+            {isAdding ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <ShoppingCart className="mr-2 h-4 w-4" />
+            )}
+            {isAdding ? "Adding..." : "Add to Cart"}
           </Button>
-        )}
+
+          {/* Dugme za recenziju se prikazuje samo ako je korisnik ulogovan i turista */}
+          {auth.user?.role === "tourist" && (
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => onReviewClick(tour)}
+            >
+              Leave a Review
+            </Button>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );
@@ -77,52 +148,13 @@ export function HomePage() {
   const [error, setError] = useState("");
   const [addingTourId, setAddingTourId] = useState(null);
 
-
   // Stanje za upravljanje prozorom za recenziju
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
   const [selectedTour, setSelectedTour] = useState(null);
 
-  // Funkcija za dohvatanje tura sa servera
-  const fetchTours = async () => {
-    try {
-      setLoading(true);
-      const data = await getPublishedTours();
-      setTours(data);
-    } catch (err) {
-      setError("Could not load tours. Please try again later.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { addItemToCart } = useCart();
 
-  useEffect(() => {
-    fetchTours();
-  }, []);
-
-  // Funkcija koja se poziva kada korisnik klikne na dugme za recenziju
-  const handleReviewClick = (tour) => {
-    setSelectedTour(tour);
-    setIsReviewFormOpen(true);
-  };
-
-
-  // Uzimamo samo funkciju za dodavanje, jer nam samo ona treba ovde
-  const { addItemToCart } = useCart(); 
-
-  // Funkcija za dodavanje u korpu ostaje ista
-  const handleAddToCart = async (tourId) => {
-    setAddingTourId(tourId);
-    const { success, error } = await addItemToCart(tourId);
-    if (success) {
-      console.log(`Successfully added tour ${tourId} to cart.`);
-    } else {
-      alert(`Error: ${error}`);
-    }
-    setAddingTourId(null);
-  };
-
-  // Učitavanje tura ostaje isto
+  // Učitavanje tura
   useEffect(() => {
     const fetchTours = async () => {
       setLoadingTours(true);
@@ -139,116 +171,95 @@ export function HomePage() {
     fetchTours();
   }, []);
 
+  // Handler za otvaranje forme za recenziju
+  const handleReviewClick = (tour) => {
+    setSelectedTour(tour);
+    setIsReviewFormOpen(true);
+  };
+
+  // Handler za dodavanje u korpu
+  const handleAddToCart = async (tourId) => {
+    setAddingTourId(tourId);
+    const { success, error } = await addItemToCart(tourId);
+    if (success) {
+      console.log(`Successfully added tour ${tourId} to cart.`);
+    } else {
+      alert(`Error: ${error}`);
+    }
+    setAddingTourId(null);
+  };
 
   return (
     <div className="min-h-screen w-full bg-slate-50">
-      {/* Navbar se sada poziva bez prop-ova vezanih za korpu */}
       <TouristNavbar />
-      
+
       <main className="flex flex-1 flex-col">
-
         {/* Hero baner */}
-
-        {/* Ostatak komponente je nepromenjen */}
-
         <div className="relative w-full h-[300px] md:h-[400px]">
-          <img src="/placeholder.png" alt="Beautiful travel destination" className="w-full h-full object-cover" />
+          <img
+            src="/images/banner.jpg"
+            alt="Beautiful travel destination"
+            className="w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center text-white p-4">
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">Find Your Next Adventure</h1>
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
+              Find Your Next Adventure
+            </h1>
             <p className="mt-4 max-w-2xl text-lg text-slate-200">
-              Explore unique tours created by local guides and discover the world like never before.
+              Explore unique tours created by local guides and discover the
+              world like never before.
             </p>
           </div>
         </div>
-        
 
         {/* Sekcija sa listom tura */}
         <div className="p-4 md:p-6 lg:p-8">
+          <h2 className="text-3xl font-bold tracking-tight mb-6">
+            Explore Our Tours
+          </h2>
 
-        <div className="p-4 md-p-6 lg-p-8">
-          <h2 className="text-3xl font-bold tracking-tight mb-6">Explore Our Tours</h2>
-          
-          {loadingTours && <div className="flex justify-center p-12"><Loader2 className="h-10 w-10 animate-spin text-cyan-600" /></div>}
+          {loadingTours && (
+            <div className="flex justify-center p-12">
+              <Loader2 className="h-10 w-10 animate-spin text-cyan-600" />
+            </div>
+          )}
           {error && <p className="text-red-500 text-center">{error}</p>}
-          
+
           {!loadingTours && !error && (
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {tours.length > 0 ? tours.map((tour) => (
-
-                <TourCard 
-                  key={tour.id} 
-                  tour={tour} 
-                  onReviewClick={handleReviewClick} 
-                />
-
-                <Card key={tour.id} className="flex flex-col overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-                  <div className="h-52 w-full bg-slate-200 flex items-center justify-center">
-                    {tour.firstKeyPointImageUrl ? (
-                       <img src={tour.firstKeyPointImageUrl} alt={tour.name} className="h-full w-full object-cover"/>
-                    ) : (
-                      <MapPin className="h-16 w-16 text-slate-400" />
-                    )}
-                  </div>
-                  
-                  <CardHeader>
-                    <CardTitle className="text-xl">{tour.name}</CardTitle>
-                    <CardDescription className="pt-1 h-20 overflow-hidden text-ellipsis">
-                      {tour.description}
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="flex-grow space-y-4">
-                    <div className="space-y-2 text-sm text-muted-foreground pt-2 border-t">
-                      
-                        <div className="flex items-center gap-2"><Coins className="h-4 w-4 text-cyan-700"/><span>Price: <strong>{tour.price > 0 ? `${tour.price.toFixed(2)} RSD` : 'Free'}</strong></span></div>
-                        {tour.firstKeyPointName && (<div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-cyan-700"/><span>Starts at: <strong>{tour.firstKeyPointName}</strong></span></div>)}
-                        {tour.distanceKm > 0 && (<div className="flex items-center gap-2"><Route className="h-4 w-4 text-cyan-700"/><span>Distance: <strong>{tour.distanceKm.toFixed(1)} km</strong></span></div>)}
-                        {tour.transportTimes && tour.transportTimes.length > 0 && (<div className="flex items-center gap-2"><Clock className="h-4 w-4 text-cyan-700"/><span>Est. Time: <strong>{tour.transportTimes[0].durationMinutes} min ({tour.transportTimes[0].transportType})</strong></span></div>)}
-                        
-                    </div>
-                  </CardContent>
-
-                  <CardFooter className="p-4 border-t mt-auto bg-slate-50">
-                    <Button 
-                      className="w-full" 
-                      onClick={() => handleAddToCart(tour.id)}
-                      disabled={addingTourId === tour.id}
-                    >
-                      {addingTourId === tour.id ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                      )}
-                      {addingTourId === tour.id ? 'Adding...' : 'Add to Cart'}
-                    </Button>
-                  </CardFooter>
-                </Card>
-
-              )) : (
-                 <p className="col-span-3 text-center text-muted-foreground">No published tours available at the moment.</p>
+              {tours.length > 0 ? (
+                tours.map((tour) => (
+                  // Sada koristimo samo našu novu, moćnu TourCard komponentu
+                  <TourCard
+                    key={tour.id}
+                    tour={tour}
+                    onReviewClick={handleReviewClick}
+                    onAddToCart={handleAddToCart}
+                    isAdding={addingTourId === tour.id}
+                  />
+                ))
+              ) : (
+                <p className="col-span-3 text-center text-muted-foreground">
+                  No published tours available at the moment.
+                </p>
               )}
             </div>
           )}
         </div>
       </main>
 
-
       {/* Prozor za recenziju, prikazuje se samo ako je odabrana neka tura */}
       {selectedTour && (
-        <ReviewForm 
+        <ReviewForm
           open={isReviewFormOpen}
           onOpenChange={setIsReviewFormOpen}
           tour={selectedTour}
           onReviewSubmitted={() => {
-            alert('Thank you for your review!');
-            // Idealno, ovde bismo osvežili podatke da se prikaže nova recenzija
-            // fetchTours(); 
+            alert("Thank you for your review!");
+            setIsReviewFormOpen(false); // Zatvori formu nakon slanja
           }}
         />
       )}
-
-      {/* ShoppingCartSheet je sada obrisan odavde */}
-
     </div>
   );
 }

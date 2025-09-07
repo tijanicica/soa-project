@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,10 +19,10 @@ export function CreateTourForm() {
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [tourData, setTourData] = useState({
-    name: '',
-    description: '',
-    difficulty: 'Medium',
-    tags: '',
+    name: "",
+    description: "",
+    difficulty: "Medium",
+    tags: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,16 +46,20 @@ export function CreateTourForm() {
       const payload = {
         ...tourData,
         authorId: parseInt(auth.user.id), // Uzimamo ID iz tokena
-        tags: tourData.tags.split(',').map(tag => tag.trim()).filter(tag => tag), // Pretvaramo string u niz tagova
+        tags: tourData.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag), // Pretvaramo string u niz tagova
       };
-      
-      const createdTour = await createTour(payload);
-      
-      navigate(`/guide/tours/edit/${createdTour.id}`);
-      alert("Tour created successfully! ID: " + createdTour.id); // Privremeni feedback
 
+      const createdTour = await createTour(payload);
+
+      navigate(`/guide/tours/edit/${createdTour.id}`);
+      alert("Tour created successfully!"); // Privremeni feedback
     } catch (err) {
-      setError("Failed to create tour. Please check the details and try again.");
+      setError(
+        "Failed to create tour. Please check the details and try again."
+      );
       console.error(err);
     } finally {
       setLoading(false);
@@ -60,19 +70,35 @@ export function CreateTourForm() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Create a New Tour</CardTitle>
-        <CardDescription>Fill in the basic details. You can add keypoints and other info later.</CardDescription>
+        <CardDescription>
+          Fill in the basic details. You can add keypoints and other info later.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-2">
             <Label htmlFor="name">Tour Name</Label>
-            <Input id="name" name="name" value={tourData.name} onChange={handleChange} placeholder="e.g., Belgrade Fortress Sunset Walk" required />
+            <Input
+              id="name"
+              name="name"
+              value={tourData.name}
+              onChange={handleChange}
+              placeholder="e.g., Belgrade Fortress Sunset Walk"
+              required
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea id="description" name="description" value={tourData.description} onChange={handleChange} placeholder="Describe the amazing experience of your tour..." required />
+            <Textarea
+              id="description"
+              name="description"
+              value={tourData.description}
+              onChange={handleChange}
+              placeholder="Describe the amazing experience of your tour..."
+              required
+            />
           </div>
-           <div className="grid gap-2">
+          <div className="grid gap-2">
             <Label htmlFor="difficulty">Difficulty</Label>
             <select
               id="difficulty"
@@ -88,19 +114,30 @@ export function CreateTourForm() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="tags">Tags (comma-separated)</Label>
-            <Input id="tags" name="tags" value={tourData.tags} onChange={handleChange} placeholder="e.g., walking, history, fortress" required />
+            <Input
+              id="tags"
+              name="tags"
+              value={tourData.tags}
+              onChange={handleChange}
+              placeholder="e.g., walking, history, fortress"
+              required
+            />
           </div>
-           {error && (
+          {error && (
             <div className="text-sm font-medium text-red-500 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4"/>
+              <AlertCircle className="h-4 w-4" />
               {error}
             </div>
-            )}
-           <div className="flex justify-end">
+          )}
+          <div className="flex justify-end">
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create Tour"}
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                "Create Tour"
+              )}
             </Button>
-           </div>
+          </div>
         </form>
       </CardContent>
     </Card>

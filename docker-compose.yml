@@ -83,8 +83,8 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8001/health" ]
-      interval: 30s
-      timeout: 10s
+      interval: 40s
+      timeout: 15s
       retries: 5
       start_period: 10s
     depends_on:
@@ -144,6 +144,9 @@ services:
       - Minio__AccessKey=minioadmin
       - Minio__SecretKey=minioadmin
       - Minio__BucketName=tour-images
+      - SERVICE_NAME=tour-service
+      - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
     healthcheck:
@@ -162,7 +165,8 @@ services:
 
   followers-service:
     build:
-      context: ./services/followers-service/followers-service
+      context: .
+      dockerfile: ./services/followers-service/followers-service/Dockerfile
     environment:
       - PORT=8004
       - SERVICE_NAME=FOLLOWERS-SERVICE
@@ -172,6 +176,9 @@ services:
       - Neo4j__Username=neo4j
       - Neo4j__Password=password
       - JwtKey=bU8x#A!t7K@pZ5gVssshY2*J(n3McQeThWmZq4t7w!
+      - SERVICE_NAME=followers-service
+      - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
     healthcheck:
@@ -199,12 +206,15 @@ services:
       - Services__TourServiceAddress=http://tour-service:8003
       - Kestrel__Endpoints__Https__Certificate__Path=/https/aspnetapp.pfx
       - Kestrel__Endpoints__Https__Certificate__Password=tica
+      - SERVICE_NAME=purchase-service
+      - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8005/health" ]
-      interval: 40s
-      timeout: 15s
+      interval: 30s
+      timeout: 10s
       retries: 5
       start_period: 10s
     depends_on:
@@ -327,6 +337,68 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    # --- OBSERVABILITY STACK ---
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus:/etc/prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000" # Koristimo 3001 jer je 3000 zauzet za frontend
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - app-network
+    depends_on:
+      - prometheus
+      - loki
+      - jaeger
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app-network
+
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    container_name: fluent-bit
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    volumes:
+      - ./observability/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro # Pristup Docker logovima
+      - /var/run/docker.sock:/var/run/docker.sock # Pristup Docker socketu
+    networks:
+      - app-network
+    depends_on:
+      - loki
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "14268:14268" # Collector endpoint (koji ćemo koristiti)
+    networks:
+      - app-network
 
 networks:
   app-network:

@@ -19,10 +19,7 @@ export function GuideNavbar() {
           <Compass className="h-6 w-6 text-emerald-600" />
           <span className="font-bold">TourApp - Guide</span>
         </Link>
-        <Link to="/guide/dashboard" className="text-muted-foreground transition-colors hover:text-foreground">
-          <LayoutDashboard className="h-4 w-4 mr-2 inline-block"/>
-          My Dashboard
-        </Link>
+      
         <Link to="/guide/tours/new" className="text-muted-foreground transition-colors hover:text-foreground">
           <PlusCircle className="h-4 w-4 mr-2 inline-block"/>
           Create Tour
