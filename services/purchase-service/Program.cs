@@ -162,7 +162,7 @@ app.Use(async (context, next) =>
     }
     await next();
 });
-app.MapPrometheusScrapingEndpoint();
+app.MapPrometheusScrapingEndpoint().AllowAnonymous();
 app.MapGrpcService<PurchaseVerificationService>();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
