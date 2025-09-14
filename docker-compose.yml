@@ -23,7 +23,6 @@ services:
       - app-network
     environment:
       - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
-      # --- POČETAK FINALNE ISPRAVKE: Kažemo .NET-u da sluša na portu 80 ---
       - ASPNETCORE_URLS=http://+:80
     depends_on:
       eureka-server:
@@ -293,8 +292,8 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
-      interval: 20s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
       retries: 5
       start_period: 30s
 

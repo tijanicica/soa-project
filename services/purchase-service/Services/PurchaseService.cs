@@ -178,7 +178,7 @@ namespace purchase_service.Services
                 .FirstOrDefaultAsync(c => c.TouristId == touristId);
         }
 
-        // 17. tacka
+        // 17. tacka grpc komunikacija za proveru da li je tura kupljena 
         public async Task<bool> HasUserPurchasedTourAsync(long touristId, string tourId)
         {
             return await _context.PurchaseTokens
