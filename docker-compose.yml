@@ -132,6 +132,8 @@ services:
     build:
       context: .
       dockerfile: ./services/tour-service/tour-service/Dockerfile
+    ports:
+      - "8003:8003"
     environment:
       - PORT=8003
       - SERVICE_NAME=TOUR-SERVICE
@@ -166,6 +168,8 @@ services:
     build:
       context: .
       dockerfile: ./services/followers-service/followers-service/Dockerfile
+    ports:
+      - "8004:8004"
     environment:
       - PORT=8004
       - SERVICE_NAME=FOLLOWERS-SERVICE
@@ -198,6 +202,8 @@ services:
       dockerfile: ./services/purchase-service/Dockerfile
     volumes:
       - ./certs:/https/
+    ports:
+      - "8005:8005"
     environment:
       - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
       - ConnectionStrings__PurchaseDatabase=Server=purchase-db;Database=purchase_db;User=user;Password=password;
@@ -378,12 +384,13 @@ services:
   fluent-bit:
     image: fluent/fluent-bit:latest
     container_name: fluent-bit
+    user: root
     ports:
       - "24224:24224"
       - "24224:24224/udp"
     volumes:
       - ./observability/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro # Pristup Docker logovima
+      #- /var/lib/docker/containers:/var/lib/docker/containers:ro # Pristup Docker logovima
       - /var/run/docker.sock:/var/run/docker.sock # Pristup Docker socketu
     networks:
       - app-network
