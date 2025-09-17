@@ -150,6 +150,12 @@ services:
       - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        # Ovo će automatski dodati tag sa imenom servisa
+        tag: docker.{{.Name}}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8003/health" ]
       interval: 20s
@@ -184,6 +190,12 @@ services:
       - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        # Ovo će automatski dodati tag sa imenom servisa
+        tag: docker.{{.Name}}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8004/health" ]
       interval: 10s
@@ -216,6 +228,12 @@ services:
       - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        # Ovo će automatski dodati tag sa imenom servisa
+        tag: docker.{{.Name}}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8005/health" ]
       interval: 30s
@@ -384,14 +402,11 @@ services:
   fluent-bit:
     image: fluent/fluent-bit:latest
     container_name: fluent-bit
-    user: root
     ports:
       - "24224:24224"
       - "24224:24224/udp"
     volumes:
       - ./observability/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      #- /var/lib/docker/containers:/var/lib/docker/containers:ro # Pristup Docker logovima
-      - /var/run/docker.sock:/var/run/docker.sock # Pristup Docker socketu
     networks:
       - app-network
     depends_on:
