@@ -154,6 +154,8 @@ export function HomePage() {
 
   const { addItemToCart } = useCart();
 
+  console.log("PROVERA AUTENTIFIKACIJE:", auth);
+
   // Učitavanje tura
   useEffect(() => {
     const fetchTours = async () => {

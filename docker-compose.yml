@@ -82,8 +82,8 @@ services:
       - app-network
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8001/health" ]
-      interval: 40s
-      timeout: 15s
+      interval: 30s
+      timeout: 10s
       retries: 5
       start_period: 10s
     depends_on:
@@ -207,6 +207,11 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
+      stakeholders-service:
+        condition: service_healthy
+      jaeger:
+        # <--- DODAJTE OVO
+        condition: service_started
 
   purchase-service:
     build:
@@ -247,6 +252,9 @@ services:
         condition: service_healthy
       tour-service:
         condition: service_healthy
+      jaeger:
+        # <--- DODAJTE OVO
+        condition: service_started
 
   # 5. Frontend
   frontend:

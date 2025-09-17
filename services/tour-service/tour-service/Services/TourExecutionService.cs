@@ -30,7 +30,7 @@ public class TourExecutionService
             throw new UnauthorizedAccessException("You have not purchased this tour.");
         }
 
-        // 2. Proveri da li već postoji aktivna sesija za ovu turu
+        // 2. Proveri da li već postoji aktivna sesija za ovu turu$
         var existingExecution = await _executionsCollection.Find(e => e.TourId == tourId && e.TouristId == touristId && e.Status == "active").FirstOrDefaultAsync();
         if (existingExecution != null)
         {
