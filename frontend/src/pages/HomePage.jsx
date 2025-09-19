@@ -24,9 +24,7 @@ import {
 import { useCart } from "@/contex/CartContex";
 
 // Pomoćna komponenta za prikaz JEDNE kartice ture sa SVOM funkcionalnošću
-function TourCard({ tour, onReviewClick, onAddToCart, isAdding }) {
-  const { auth } = useAuth(); // Podaci o ulogovanom korisniku
-
+function TourCard({ tour, onReviewClick, onAddToCart, isAdding, auth }) {
   const shortDescription =
     tour.description.length > 100
       ? `${tour.description.substring(0, 100)}...`
@@ -110,8 +108,8 @@ function TourCard({ tour, onReviewClick, onAddToCart, isAdding }) {
 
       {/* Dugmad - Recenzija i Dodaj u korpu */}
       <CardFooter className="p-4 border-t mt-auto bg-slate-50">
-        <div className="w-full flex items-center gap-2">
-          {/* Dugme za dodavanje u korpu se uvek prikazuje */}
+        <div className="w-full space-y-2">
+          {/* Dugme za dodavanje u korpu */}
           <Button
             className="w-full"
             onClick={() => onAddToCart(tour.id)}
@@ -125,16 +123,14 @@ function TourCard({ tour, onReviewClick, onAddToCart, isAdding }) {
             {isAdding ? "Adding..." : "Add to Cart"}
           </Button>
 
-          {/* Dugme za recenziju se prikazuje samo ako je korisnik ulogovan i turista */}
-          {auth.user?.role === "tourist" && (
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => onReviewClick(tour)}
-            >
-              Leave a Review
-            </Button>
-          )}
+          {/* Dugme za recenziju - TEMP: Always show for testing */}
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={() => onReviewClick(tour)}
+          >
+            Leave a Review
+          </Button>
         </div>
       </CardFooter>
     </Card>
@@ -153,6 +149,7 @@ export function HomePage() {
   const [selectedTour, setSelectedTour] = useState(null);
 
   const { addItemToCart } = useCart();
+  const { auth } = useAuth(); // Moved useAuth hook here
 
   console.log("PROVERA AUTENTIFIKACIJE:", auth);
 
@@ -231,13 +228,14 @@ export function HomePage() {
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {tours.length > 0 ? (
                 tours.map((tour) => (
-                  // Sada koristimo samo našu novu, moćnu TourCard komponentu
+                  // Pass auth as a prop to TourCard
                   <TourCard
                     key={tour.id}
                     tour={tour}
                     onReviewClick={handleReviewClick}
                     onAddToCart={handleAddToCart}
                     isAdding={addingTourId === tour.id}
+                    auth={auth}
                   />
                 ))
               ) : (
