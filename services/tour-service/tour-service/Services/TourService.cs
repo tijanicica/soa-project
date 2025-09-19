@@ -116,7 +116,10 @@ namespace tour_service.Services
                 // Podaci o početnoj tački
                 FirstKeyPointName = tour.KeyPoints.FirstOrDefault()?.Name,
                 FirstKeyPointImageUrl = tour.KeyPoints.FirstOrDefault()?.ImageUrl,
-
+                
+                AverageGrade = tour.Reviews != null && tour.Reviews.Any()
+                    ? tour.Reviews.Average(r => r.Rating)
+                    : 0.0,
                 // Reviews = tour.Reviews // Za buduću upotrebu
 
             }).ToList();

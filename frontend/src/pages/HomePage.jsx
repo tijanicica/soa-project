@@ -20,9 +20,45 @@ import {
   ShoppingCart,
   Route,
   Clock,
+  Star,
 } from "lucide-react";
 import { useCart } from "@/contex/CartContex";
 
+function StarRating({ rating }) {
+  // If there are no reviews, show a message
+  if (!rating || rating === 0) {
+    return (
+      <div className="flex items-center">
+        <span className="text-sm text-muted-foreground">No reviews yet</span>
+      </div>
+    );
+  }
+
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 !== 0; // Check for a decimal part
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  const ratingText = rating.toFixed(1); // Format to one decimal place
+
+  return (
+    <div className="flex items-center gap-1">
+      {/* Render full stars */}
+      {[...Array(fullStars)].map((_, i) => (
+        <Star
+          key={`full-${i}`}
+          className="h-4 w-4 text-yellow-400 fill-yellow-400"
+        />
+      ))}
+      {/* Render half star if needed (optional but nice) */}
+      {/* For simplicity, we can just round and show full/empty stars */}
+      {[...Array(5 - Math.round(rating))].map((_, i) => (
+        <Star key={`empty-${i}`} className="h-4 w-4 text-slate-300" />
+      ))}
+      <span className="ml-1 text-sm font-medium text-muted-foreground">
+        {ratingText}
+      </span>
+    </div>
+  );
+}
 // Pomoćna komponenta za prikaz JEDNE kartice ture sa SVOM funkcionalnošću
 function TourCard({ tour, onReviewClick, onAddToCart, isAdding, auth }) {
   const shortDescription =
@@ -53,6 +89,16 @@ function TourCard({ tour, onReviewClick, onAddToCart, isAdding, auth }) {
         <CardDescription className="pt-1 h-20 overflow-hidden text-ellipsis">
           {shortDescription}
         </CardDescription>
+
+        {/* --- ADDED RATING DISPLAY --- */}
+        <div className="pt-1">
+          {/* Use the new averageGrade property from the tour object */}
+          <StarRating rating={tour.averageGrade} />
+        </div>
+
+        {/* <CardDescription className="pt-2 h-16 overflow-hidden text-ellipsis">
+          {shortDescription}
+        </CardDescription> */}
       </CardHeader>
 
       {/* Detalji o turi */}

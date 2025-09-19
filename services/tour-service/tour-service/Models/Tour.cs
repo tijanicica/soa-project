@@ -88,6 +88,6 @@ namespace tour_service.Models
         // Kada budete imali Reviews, dodajte i sledeću liniju:
         // public List<Review> Reviews { get; set; } = new();
         
-       // public double AverageGrade { get; set; }
+        public double AverageGrade { get; set; }
     }
 }
