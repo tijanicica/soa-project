@@ -70,18 +70,43 @@ public class FollowerService : IFollowerService
     }
 
     // Tačka 2.3: Preporuke za praćenje ("prijatelji prijatelja")
+    
     public async Task<IEnumerable<UserDto>> GetFollowRecommendationsAsync(long userId)
     {
         await using var session = _driver.AsyncSession();
         return await session.ExecuteReadAsync(async tx =>
         {
-            var query = @"
+            // Korak 1: Proveravamo da li korisnik prati bar jednu osobu.
+            var checkQuery = @"
+            RETURN EXISTS( (:User {userId: $userId})-[:FOLLOWS]->() )";
+        
+            var checkResult = await tx.RunAsync(checkQuery, new { userId });
+            var isFollowingAnyone = (await checkResult.SingleAsync())[0].As<bool>();
+
+            string recommendationsQuery;
+        
+            if (isFollowingAnyone)
+            {
+                // Korisnik već nekoga prati, koristimo logiku "pratioci pratioca".
+                recommendationsQuery = @"
                 MATCH (me:User {userId: $userId})-[:FOLLOWS]->(friend)-[:FOLLOWS]->(recommendation)
                 WHERE NOT (me)-[:FOLLOWS]->(recommendation) AND me <> recommendation
                 RETURN DISTINCT recommendation.userId AS UserId
-                LIMIT 10"; // Ograničavamo na 10 preporuka
-            
-            var result = await tx.RunAsync(query, new { userId });
+                LIMIT 10";
+            }
+            else
+            {
+                // Korisnik je nov, preporučujemo sve korisnike sa ulogom 'tourist'.
+                // OVAJ UPIT SADA RADI ISPRAVNO JER ČVOROVI IMAJU 'role' PROPERTY!
+                recommendationsQuery = @"
+                MATCH (tourist:User {role: 'tourist'})
+                WHERE tourist.userId <> $userId
+                RETURN tourist.userId AS UserId
+                LIMIT 20";
+            }
+
+            // Izvršavamo odabrani upit.
+            var result = await tx.RunAsync(recommendationsQuery, new { userId });
             return await result.ToListAsync(record => new UserDto { UserId = record["UserId"].As<long>() });
         });
     }

@@ -132,6 +132,8 @@ services:
     build:
       context: .
       dockerfile: ./services/tour-service/tour-service/Dockerfile
+    ports:
+      - "8003:8003"
     environment:
       - PORT=8003
       - SERVICE_NAME=TOUR-SERVICE
@@ -148,6 +150,12 @@ services:
       - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        # Ovo će automatski dodati tag sa imenom servisa
+        tag: docker.{{.Name}}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8003/health" ]
       interval: 20s
@@ -166,6 +174,8 @@ services:
     build:
       context: .
       dockerfile: ./services/followers-service/followers-service/Dockerfile
+    ports:
+      - "8004:8004"
     environment:
       - PORT=8004
       - SERVICE_NAME=FOLLOWERS-SERVICE
@@ -180,6 +190,12 @@ services:
       - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        # Ovo će automatski dodati tag sa imenom servisa
+        tag: docker.{{.Name}}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8004/health" ]
       interval: 10s
@@ -191,6 +207,11 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
+      stakeholders-service:
+        condition: service_healthy
+      jaeger:
+        # <--- DODAJTE OVO
+        condition: service_started
 
   purchase-service:
     build:
@@ -198,6 +219,8 @@ services:
       dockerfile: ./services/purchase-service/Dockerfile
     volumes:
       - ./certs:/https/
+    ports:
+      - "8005:8005"
     environment:
       - Eureka__Client__ServiceUrl=http://eureka-server:8761/eureka
       - ConnectionStrings__PurchaseDatabase=Server=purchase-db;Database=purchase_db;User=user;Password=password;
@@ -210,6 +233,12 @@ services:
       - OTEL_EXPORTER_JAEGER_PROTOCOL=http/protobuf
     networks:
       - app-network
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        # Ovo će automatski dodati tag sa imenom servisa
+        tag: docker.{{.Name}}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8005/health" ]
       interval: 30s
@@ -223,6 +252,9 @@ services:
         condition: service_healthy
       tour-service:
         condition: service_healthy
+      jaeger:
+        # <--- DODAJTE OVO
+        condition: service_started
 
   # 5. Frontend
   frontend:
@@ -383,8 +415,6 @@ services:
       - "24224:24224/udp"
     volumes:
       - ./observability/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro # Pristup Docker logovima
-      - /var/run/docker.sock:/var/run/docker.sock # Pristup Docker socketu
     networks:
       - app-network
     depends_on:
