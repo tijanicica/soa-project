@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/model"
-	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/store"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/model"
+	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/store"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -137,36 +138,28 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// --- POČETAK NOVE VALIDACIJE ---
-	// 1. Proveri da li korisničko ime već postoji
 	existingUser, err := h.store.GetUserByUsername(req.Username)
 	if err != nil {
-		// Prava greška sa bazom
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking username"})
 		return
 	}
 	if existingUser != nil {
-		// Korisnik sa tim imenom već postoji
 		c.JSON(http.StatusConflict, gin.H{"error": "Username is already taken"})
 		return
 	}
 
-	// 2. Proveri da li email već postoji
 	existingUser, err = h.store.GetUserByEmail(req.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking email"})
 		return
 	}
 	if existingUser != nil {
-		// Korisnik sa tim email-om već postoji
 		c.JSON(http.StatusConflict, gin.H{"error": "Email is already registered"})
 		return
 	}
 
-	// Validacija uloge (ostaje ista)
 	switch req.Role {
 	case "guide", "tourist":
-		// OK
 	case "administrator":
 		c.JSON(http.StatusForbidden, gin.H{"error": "Administrator role cannot be assigned through registration."})
 		return
@@ -182,7 +175,6 @@ func (h *UserHandler) Register(c *gin.Context) {
 		Role:     req.Role,
 	}
 
-	// Sada znamo da je bezbedno kreirati korisnika
 	if err := h.store.CreateUser(user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
@@ -191,7 +183,6 @@ func (h *UserHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
 }
 
-// Login je handler za prijavljivanje korisnika
 func (h *UserHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -199,7 +190,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Pronađi korisnika u bazi
 	user, err := h.store.GetUserByUsername(req.Username)
 	if err != nil || user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
@@ -210,18 +200,13 @@ func (h *UserHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Your account has been blocked."})
 		return
 	}
-	// --- KRAJ NOVE PROVERE ---
-
-	// Proveri lozinku
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	// Kreiraj JWT token
 	expirationTime := time.Now().Add(24 * time.Hour) // Token traje 24 sata
 
-	// Kreiramo našu custom strukturu sa podacima
 	claims := &AppClaims{
 		Role: user.Role, // DODAJEMO ULOGU
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -230,7 +215,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 		},
 	}
 
-	// Kreiramo token koristeći našu AppClaims strukturu
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
@@ -242,8 +226,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
-	// U realnoj aplikaciji, ovde bi trebalo dodati proveru da li je ulogovani korisnik administrator.
-	// To se obično radi unutar middleware-a koji proverava JWT token.
 
 	users, err := h.store.GetAllUsers()
 	if err != nil {
@@ -255,7 +237,6 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 }
 
 func (h *UserHandler) BlockUser(c *gin.Context) {
-	// 1. Dohvatamo ID korisnika iz URL-a.
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -263,7 +244,6 @@ func (h *UserHandler) BlockUser(c *gin.Context) {
 		return
 	}
 
-	// 2. Dohvatamo korisnika kojeg želimo da blokiramo iz baze.
 	userToBlock, err := h.store.GetUserByID(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user information"})
@@ -274,13 +254,11 @@ func (h *UserHandler) BlockUser(c *gin.Context) {
 		return
 	}
 
-	// 3. Proveravamo njegovu ulogu.
 	if userToBlock.Role == "administrator" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Administrator accounts cannot be blocked."})
 		return
 	}
 
-	// 4. Ako su sve provere prošle, nastavljamo sa blokiranjem.
 	if err := h.store.BlockUser(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to block user"})
 		return
@@ -289,7 +267,6 @@ func (h *UserHandler) BlockUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User blocked successfully"})
 }
 
-// GetProfile je handler za dobijanje profila ulogovanog korisnika
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userIDValue, exists := c.Get("userID")
 	if !exists {
@@ -297,7 +274,6 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	// Sigurna provera tipa (type assertion)
 	userID, ok := userIDValue.(int64)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "User ID in context is not of expected type"})
@@ -341,7 +317,6 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 
 }
 
-// UnblockUser je handler za odblokiranje korisnika.
 func (h *UserHandler) UnblockUser(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)

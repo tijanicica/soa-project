@@ -17,9 +17,8 @@ using PurchaseService;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// === POČETAK OBSERVABILITY KONFIGURACIJE ===
+// OBSERVABILITY
 
-// 1. Definiši ime servisa. Čitamo ga iz docker-compose.yml
 var serviceName = builder.Configuration["SERVICE_NAME"] ?? "tour-service";
 var serviceVersion = "1.0.0";
 
@@ -29,12 +28,10 @@ builder.Services.AddOpenTelemetry()
         serviceVersion: serviceVersion,
         serviceInstanceId: Environment.MachineName))
     
-    // 2. Konfiguracija za TRACING sa eksplicitnim Jaeger endpointom
     .WithTracing(tracing => tracing
         .AddGrpcClientInstrumentation()
         .AddAspNetCoreInstrumentation(options =>
         {
-            // Filtriraj health check endpointe
             options.Filter = (httpContext) => !httpContext.Request.Path.Value?.Contains("/health") ?? true;
         })
         .AddHttpClientInstrumentation()
@@ -44,21 +41,19 @@ builder.Services.AddOpenTelemetry()
             options.Protocol = JaegerExportProtocol.HttpBinaryThrift;
         }))
         
-    // 3. Konfiguracija za METRIKE
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddPrometheusExporter());
-// === KRAJ OBSERVABILITY KONFIGURACIJE ===
 
+// GRPC klijent
 builder.Services.AddGrpcClient<PurchaseVerification.PurchaseVerificationClient>(o =>
     {
-        // Sada se povezujemo na HTTPS port
-        o.Address = new Uri("https://purchase-service:8006"); 
+        o.Address = new Uri("https://purchase-service:8006");
     })
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
     {
-        // Ovo je ključno: kažemo klijentu da veruje self-signed dev sertifikatu
+        // za sertifikat
         ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
     });
 

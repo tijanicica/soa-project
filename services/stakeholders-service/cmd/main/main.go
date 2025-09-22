@@ -24,7 +24,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// registerWithEureka handles service registration and heartbeats with Eureka.
 func registerWithEureka(serviceName string, port int) {
 	eurekaURL := os.Getenv("EUREKA_URL")
 	if eurekaURL == "" {
@@ -63,7 +62,6 @@ func registerWithEureka(serviceName string, port int) {
 		log.Fatalf("Could not register with Eureka after multiple retries: %v", err)
 	}
 
-	// Start heartbeat goroutine
 	go func() {
 		for {
 			if err := c.HeartBeatInstance(&instance); err != nil {

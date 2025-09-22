@@ -1,7 +1,7 @@
 ﻿using MongoDB.Driver;
 using tour_service.Models;
 using PurchaseService; // gRPC klijent
-using Geolocation; // Potreban paket: dotnet add package Geolocation.NetStandard
+using Geolocation;
 
 namespace tour_service.Services;
 
@@ -30,14 +30,12 @@ public class TourExecutionService
             throw new UnauthorizedAccessException("You have not purchased this tour.");
         }
 
-        // 2. Proveri da li već postoji aktivna sesija za ovu turu$
         var existingExecution = await _executionsCollection.Find(e => e.TourId == tourId && e.TouristId == touristId && e.Status == "active").FirstOrDefaultAsync();
         if (existingExecution != null)
         {
-            return existingExecution; // Vrati postojeću sesiju
+            return existingExecution;
         }
 
-        // 3. Kreiraj novu sesiju
         var newExecution = new TourExecution
         {
             TourId = tourId,
@@ -57,13 +55,12 @@ public class TourExecutionService
         var execution = await _executionsCollection.Find(e => e.Id == executionId && e.TouristId == touristId).FirstOrDefaultAsync();
         if (execution == null || execution.Status != "active")
         {
-            return null; // Sesija ne postoji ili nije aktivna
+            return null;
         }
 
         var tour = await _toursCollection.Find(t => t.Id == execution.TourId).FirstOrDefaultAsync();
         if (tour == null) return null;
 
-        // Pronađi sledeću ključnu tačku koju treba posetiti
         var nextKeyPoint = tour.KeyPoints.FirstOrDefault(kp => !execution.CompletedKeyPoints.Any(ckp => ckp.KeyPointId == kp.Id));
 
         if (nextKeyPoint != null)
@@ -74,7 +71,7 @@ public class TourExecutionService
                 nextKeyPoint.Latitude, nextKeyPoint.Longitude, 
                 decimalPlaces: 1, DistanceUnit.Meters);
 
-            // Ako je korisnik na manje od 50 metara, smatramo da je posetio tačku
+            // ako je na manje od 50m posetio je kljucnu tacku
             if (distance < 50)
             {
                 execution.CompletedKeyPoints.Add(new CompletedKeyPoint
@@ -83,7 +80,6 @@ public class TourExecutionService
                     CompletionTime = DateTime.UtcNow
                 });
 
-                // Ako su sve tačke završene, kompletiraj turu
                 if (execution.CompletedKeyPoints.Count == tour.KeyPoints.Count)
                 {
                     execution.Status = "completed";
@@ -92,7 +88,6 @@ public class TourExecutionService
             }
         }
 
-        // Ažuriraj poziciju i vreme poslednje aktivnosti
         execution.CurrentPosition = newPosition;
         execution.LastActivityTime = DateTime.UtcNow;
         

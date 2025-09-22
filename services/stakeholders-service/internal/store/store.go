@@ -5,28 +5,22 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/go-sql-driver/mysql" // Donja crta znači da uvozimo paket zbog njegovih "side-effects" (registrovanja drajvera)
+	_ "github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Store je naša glavna struktura za rad sa bazom. Sadrži konekciju.
 type Store struct {
 	db *sql.DB
 }
 
-// NewStore je "konstruktor". On prima podatke za konekciju, pokušava da se poveže
-// i vraća novu instancu Store-a ili grešku.
 func NewStore(user, password, host, dbname string) (*Store, error) {
-	// String za konekciju (Data Source Name)
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", user, password, host, dbname)
 
-	// Otvaramo konekciju
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	// Proveravamo da li je konekcija zaista uspešna
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
@@ -34,10 +28,7 @@ func NewStore(user, password, host, dbname string) (*Store, error) {
 	return &Store{db: db}, nil
 }
 
-// Init metoda kreira potrebne tabele ako ne postoje.
-// Ovo je robustan način da osiguramo da je baza uvek spremna.
 func (s *Store) Init() error {
-	// Kreiranje 'users' tabele
 	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id INT AUTO_INCREMENT PRIMARY KEY,
@@ -54,7 +45,6 @@ func (s *Store) Init() error {
 		return fmt.Errorf("error creating users table: %w", err)
 	}
 
-	// Kreiranje 'profiles' tabele
 	_, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS profiles (
 			id INT AUTO_INCREMENT PRIMARY KEY,
@@ -75,15 +65,11 @@ func (s *Store) Init() error {
 	return nil
 }
 
-// Seed metoda ubacuje početne, test podatke u tabele.
 func (s *Store) Seed() error {
-	// Hešujemo lozinke pre ubacivanja u bazu
 	hashedPasswordAdmin, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
 	hashedPasswordVodic, _ := bcrypt.GenerateFromPassword([]byte("vodic123"), bcrypt.DefaultCost)
 	hashedPasswordTurista, _ := bcrypt.GenerateFromPassword([]byte("turista123"), bcrypt.DefaultCost)
 
-	// Ubacujemo administratore i test korisnike (kako piše u specifikaciji)
-	// Koristimo "INSERT IGNORE" da ne bi došlo do greške ako podaci već postoje
 	_, err := s.db.Exec(`
 		INSERT IGNORE INTO users (id, username, password, email, role) VALUES
 		(1, 'admin', ?, 'admin@example.com', 'administrator'),

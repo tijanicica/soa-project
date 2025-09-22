@@ -3,7 +3,7 @@ FROM node:20-bullseye AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci   # bolje od npm install u dockeru
+RUN npm ci
 
 COPY . .
 RUN npm run build

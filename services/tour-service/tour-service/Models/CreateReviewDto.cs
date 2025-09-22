@@ -1,5 +1,4 @@
-﻿// Kreirajte novi fajl /src/Models/CreateReviewDto.cs
-namespace tour_service.Models
+﻿namespace tour_service.Models
 {
     public class CreateReviewDto
     {

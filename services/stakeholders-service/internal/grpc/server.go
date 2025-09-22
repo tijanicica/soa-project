@@ -25,14 +25,14 @@ type AppClaims struct {
 
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
-// Server je implementacija gRPC servisa.
+// Server je implementacija gRPC servisa
 type Server struct {
 	pb.UnimplementedStakeholderServiceServer
 	store    *store.Store
 	s3Client *s3.S3
 }
 
-// NewServer kreira novu instancu gRPC servera sa potrebnim zavisnostima.
+// NewServer kreira novu instancu gRPC servera sa potrebnim zavisnostima
 func NewServer(store *store.Store, s3Client *s3.S3) *Server {
 	return &Server{
 		store:    store,

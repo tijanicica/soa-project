@@ -4,7 +4,7 @@ namespace purchase_service.Models
 {
     public class OrderItem
     {
-        [Key] // <-- DODAJTE OVAJ ATRIBUT
+        [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
         public string TourId { get; set; }
         public string Name { get; set; }

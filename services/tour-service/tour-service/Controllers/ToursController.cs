@@ -24,7 +24,7 @@ namespace tour_service.Controllers
 
         // POST /tours
         [HttpPost("create")]
-        [Authorize(Roles = "guide")] // SAMO korisnici sa ulogom "guide" mogu da pozovu ovu metodu
+        [Authorize(Roles = "guide")]
         public async Task<IActionResult> Create([FromBody] Tour newTour)
         {
             var authorIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -34,10 +34,10 @@ namespace tour_service.Controllers
             }
             
 
-            newTour.AuthorId = authorId; // Postavljamo ID ulogovanog korisnika
+            newTour.AuthorId = authorId;
             newTour.Status = "draft";
             newTour.Price = 0;
-            newTour.CreationDate = DateTime.UtcNow; // Koristimo univerzalno vreme
+            newTour.CreationDate = DateTime.UtcNow;
 
 
             await _tourService.CreateTourAsync(newTour);
@@ -190,7 +190,7 @@ namespace tour_service.Controllers
         }
 
         [HttpGet("published")]
-        [AllowAnonymous] // Eksplicitno kažemo da ne treba autorizacija
+        [AllowAnonymous]
         public async Task<ActionResult<List<PublishedTourDto>>> GetPublishedTours()
         {
             var tours = await _tourService.GetAllPublishedToursAsync();
@@ -313,7 +313,6 @@ namespace tour_service.Controllers
         {
             var touristIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            // ISPRAVLJENA LINIJA
             if (!long.TryParse(touristIdString, out long touristId))
             {
                 return Unauthorized("Invalid token.");
@@ -344,7 +343,7 @@ namespace tour_service.Controllers
                 }
 
             [HttpGet("details-for-purchase/{id:length(24)}")]
-            [AllowAnonymous] // This endpoint can be called by another service without a user token
+            [AllowAnonymous]
             public async Task<ActionResult<TourDetailsDto>> GetTourDetailsForPurchase(string id)
             {
                 var tour = await _tourService.GetTourAsync(id);

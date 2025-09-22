@@ -12,13 +12,11 @@ public class FollowerService : IFollowerService
         _driver = driver;
     }
 
-    // Tačka 2.1: Omogućiti korisnicima da zaprate druge korisnike
     public async Task FollowUserAsync(long followerId, long followedId)
     {
         await using var session = _driver.AsyncSession();
         await session.ExecuteWriteAsync(async tx =>
         {
-            // MERGE osigurava da se čvorovi i veza kreiraju samo ako ne postoje
             var query = @"
                 MERGE (follower:User {userId: $followerId})
                 MERGE (followed:User {userId: $followedId})
@@ -69,14 +67,13 @@ public class FollowerService : IFollowerService
         });
     }
 
-    // Tačka 2.3: Preporuke za praćenje ("prijatelji prijatelja")
-    
+
     public async Task<IEnumerable<UserDto>> GetFollowRecommendationsAsync(long userId)
     {
         await using var session = _driver.AsyncSession();
         return await session.ExecuteReadAsync(async tx =>
         {
-            // Korak 1: Proveravamo da li korisnik prati bar jednu osobu.
+            // ako prati bar jednu osobu pratioci pratioca, ako ne svi useri koji imaju ulogu turiste
             var checkQuery = @"
             RETURN EXISTS( (:User {userId: $userId})-[:FOLLOWS]->() )";
         
@@ -87,7 +84,7 @@ public class FollowerService : IFollowerService
         
             if (isFollowingAnyone)
             {
-                // Korisnik već nekoga prati, koristimo logiku "pratioci pratioca".
+                // korisnik prati nekoga
                 recommendationsQuery = @"
                 MATCH (me:User {userId: $userId})-[:FOLLOWS]->(friend)-[:FOLLOWS]->(recommendation)
                 WHERE NOT (me)-[:FOLLOWS]->(recommendation) AND me <> recommendation
@@ -96,8 +93,7 @@ public class FollowerService : IFollowerService
             }
             else
             {
-                // Korisnik je nov, preporučujemo sve korisnike sa ulogom 'tourist'.
-                // OVAJ UPIT SADA RADI ISPRAVNO JER ČVOROVI IMAJU 'role' PROPERTY!
+                // korisnik je nov
                 recommendationsQuery = @"
                 MATCH (tourist:User {role: 'tourist'})
                 WHERE tourist.userId <> $userId
@@ -105,13 +101,12 @@ public class FollowerService : IFollowerService
                 LIMIT 20";
             }
 
-            // Izvršavamo odabrani upit.
             var result = await tx.RunAsync(recommendationsQuery, new { userId });
             return await result.ToListAsync(record => new UserDto { UserId = record["UserId"].As<long>() });
         });
     }
 
-    // Pomoćna funkcija za Tačku 2.2: Provera da li korisnik prati drugog
+    // da li korisnik prati drugog korisnika
     public async Task<bool> IsFollowingAsync(long followerId, long followedId)
     {
         await using var session = _driver.AsyncSession();

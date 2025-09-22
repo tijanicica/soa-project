@@ -2,14 +2,14 @@
 using Amazon.S3.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration; // <-- Dodao sam ovaj using, za svaki slučaj
+using Microsoft.Extensions.Configuration;
 
 namespace tour_service.Controllers
 {
 
     [ApiController]
     [Route("[controller]")]
-    [Authorize(Roles = "guide,tourist")] // <-- DOZVOLJAVAMO I ULOGU "tourist"
+    [Authorize(Roles = "guide,tourist")]
    
     public class FilesController : ControllerBase
     {

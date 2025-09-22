@@ -33,16 +33,12 @@ namespace tour_service.Services
             var filter = Builders<TourExecution>.Filter.And(
                 Builders<TourExecution>.Filter.Eq(x => x.TouristId, touristId),
                 Builders<TourExecution>.Filter.Eq(x => x.TourId, tourId),
-                Builders<TourExecution>.Filter.Eq(x => x.Status, "completed") // Status mora biti "completed"
+                Builders<TourExecution>.Filter.Eq(x => x.Status, "completed")
             );
 
-            // AnyAsync vraća true ako postoji bar jedan dokument koji zadovoljava filter
             return await _tourExecutionsCollection.Find(filter).AnyAsync();
         }
 
-        // --- Ostatak metoda (CreateTourAsync, GetTourAsync, itd.) ostaje isti ---
-
-        // Funkcija za kreiranje ture
         public async Task CreateTourAsync(Tour newTour)
         {
             await _toursCollection.InsertOneAsync(newTour);
@@ -59,68 +55,37 @@ namespace tour_service.Services
         {
             var filter = Builders<Tour>.Filter.Eq(x => x.Id, tourId);
 
-            // Ažuriramo samo polja koja se menjaju, umesto da gazimo ceo dokument
             var update = Builders<Tour>.Update
                 .Set(x => x.Name, updatedTour.Name)
                 .Set(x => x.Description, updatedTour.Description)
                 .Set(x => x.Difficulty, updatedTour.Difficulty)
                 .Set(x => x.Tags, updatedTour.Tags)
-                .Set(x => x.Price, updatedTour.Price); // <-- DODALI SMO CENU
+                .Set(x => x.Price, updatedTour.Price);
 
             var result = await _toursCollection.UpdateOneAsync(filter, update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
-        /*public async Task<List<PublishedTourDto>> GetAllPublishedToursAsync()
-        {
-            // 1. Filtriraj samo ture koje su "published"
-            var publishedTours = await _toursCollection.Find(t => t.Status == "published").ToListAsync();
-
-            // 2. Mapiraj svaku turu u DTO
-            var tourDtos = publishedTours.Select(tour => new PublishedTourDto
-            {
-                Id = tour.Id,
-                Name = tour.Name,
-                Description = tour.Description,
-                Difficulty = tour.Difficulty,
-                Tags = tour.Tags,
-                Price = tour.Price,
-                // Uzmi ime i sliku samo PRVE ključne tačke, ako postoji
-                FirstKeyPointName = tour.KeyPoints.FirstOrDefault()?.Name,
-                FirstKeyPointImageUrl = tour.KeyPoints.FirstOrDefault()?.ImageUrl
-            }).ToList();
-
-            return tourDtos;
-        }*/
-
         public async Task<List<PublishedTourDto>> GetAllPublishedToursAsync()
         {
-            // 1. Filtriraj samo ture koje su "published"
             var publishedTours = await _toursCollection.Find(t => t.Status == "published").ToListAsync();
 
-            // 2. Mapiraj svaku turu u naš kompletan DTO
             var tourDtos = publishedTours.Select(tour => new PublishedTourDto
             {
-                // Osnovni podaci
                 Id = tour.Id,
                 Name = tour.Name,
                 Description = tour.Description,
                 Difficulty = tour.Difficulty,
                 Tags = tour.Tags,
                 Price = tour.Price,
-
-                // Podaci koje ste tražili da se dodaju
                 DistanceKm = tour.DistanceKm,
                 TransportTimes = tour.TransportTimes,
-
-                // Podaci o početnoj tački
                 FirstKeyPointName = tour.KeyPoints.FirstOrDefault()?.Name,
                 FirstKeyPointImageUrl = tour.KeyPoints.FirstOrDefault()?.ImageUrl,
                 
                 AverageGrade = tour.Reviews != null && tour.Reviews.Any()
                     ? tour.Reviews.Average(r => r.Rating)
                     : 0.0,
-                // Reviews = tour.Reviews // Za buduću upotrebu
 
             }).ToList();
 
@@ -149,7 +114,6 @@ namespace tour_service.Services
                 Builders<Tour>.Filter.ElemMatch(x => x.KeyPoints, kp => kp.Id == updatedKeyPoint.Id)
             );
 
-            // ISPRAVKA: Ažuriramo samo polja koja se menjaju, ne gazimo ceo objekat.
             var update = Builders<Tour>.Update
                 .Set("KeyPoints.$.Name", updatedKeyPoint.Name)
                 .Set("KeyPoints.$.Description", updatedKeyPoint.Description)
@@ -217,10 +181,6 @@ namespace tour_service.Services
             var result = await _toursCollection.UpdateOneAsync(filter, update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
-
-
-        // Izmenjena metoda
-        // U fajlu: /src/Services/TourService.cs
 
         public async Task<AddReviewResult> AddReviewAsync(string tourId, long touristId, CreateReviewDto reviewDto)
         {

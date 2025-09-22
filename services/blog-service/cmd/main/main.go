@@ -74,9 +74,6 @@ func registerWithEureka(serviceName string, port int) {
 func main() {
 	log.Println("Starting blog-service...")
 
-	// =================================================================
-	// ===== IZMENJENI DEO KODA ZA POVEZIVANJE NA BAZU =====
-	// =================================================================
 	log.Println("Connecting to database...")
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASS")
@@ -86,7 +83,6 @@ func main() {
 	var dbStore *store.Store
 	var err error
 
-	// Petlja koja pokušava da se poveže 5 puta pre nego što odustane
 	for i := 0; i < 5; i++ {
 		dbStore, err = store.NewStore(dbUser, dbPass, dbHost, dbName)
 		if err == nil {
@@ -97,15 +93,11 @@ func main() {
 		time.Sleep(5 * time.Second)
 	}
 
-	// Ako ni posle 5 pokušaja nije uspelo, prekini program
 	if err != nil {
 		log.Fatalf("Could not connect to database after multiple attempts: %v", err)
 	}
 
 	log.Println("Database connection successful.")
-	// =================================================================
-	// ===== KRAJ IZMENJENOG DELA KODA =====
-	// =================================================================
 
 	if err := dbStore.Init(); err != nil {
 		log.Fatalf("Failed to initialize database tables: %v", err)

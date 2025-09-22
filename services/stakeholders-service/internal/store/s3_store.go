@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-// NewS3Session kreira i vraća novu sesiju za rad sa S3-kompatibilnim storage-om
 func NewS3Session(endpoint, accessKey, secretKey string) (*s3.S3, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Endpoint:         aws.String(endpoint),

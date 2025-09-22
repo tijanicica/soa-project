@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Svi endpointi u ovom kontroleru zahtevaju autorizaciju
+[Authorize]
 public class FollowersController : ControllerBase
 {
     private readonly IFollowerService _followerService;
@@ -18,7 +18,7 @@ public class FollowersController : ControllerBase
         _followerService = followerService;
     }
 
-    // Helper funkcija za dobijanje ID-ja ulogovanog korisnika iz JWT tokena
+    // id iz tokena
     private long GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -62,7 +62,7 @@ public class FollowersController : ControllerBase
     
     // GET /api/followers/{userId}/following - javni endpoint
     [HttpGet("{userId}/following")]
-    [AllowAnonymous] // Dozvoljavamo da se vidi koga drugi prate
+    [AllowAnonymous] // Dozvoljavamo da se vidi koga drugi prate, zbog preporuka
     public async Task<IActionResult> GetUserFollowing(long userId)
     {
         var following = await _followerService.GetFollowingAsync(userId);

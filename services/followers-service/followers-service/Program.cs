@@ -13,9 +13,8 @@ using OpenTelemetry.Exporter;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// === POČETAK OBSERVABILITY KONFIGURACIJE ===
+// OBSERVABILITY
 
-// 1. Definiši ime servisa. Čitamo ga iz docker-compose.yml
 var serviceName = builder.Configuration["SERVICE_NAME"] ?? "tour-service";
 var serviceVersion = "1.0.0";
 
@@ -25,12 +24,11 @@ builder.Services.AddOpenTelemetry()
         serviceVersion: serviceVersion,
         serviceInstanceId: Environment.MachineName))
     
-    // 2. Konfiguracija za TRACING sa eksplicitnim Jaeger endpointom
+    // Tracing Jagger
     .WithTracing(tracing => tracing
         
         .AddAspNetCoreInstrumentation(options =>
         {
-            // Filtriraj health check endpointe
             options.Filter = (httpContext) => !httpContext.Request.Path.Value?.Contains("/health") ?? true;
         })
         .AddHttpClientInstrumentation()
@@ -40,15 +38,14 @@ builder.Services.AddOpenTelemetry()
             options.Protocol = JaegerExportProtocol.HttpBinaryThrift;
         }))
         
-    // 3. Konfiguracija za METRIKE
+    // Metrike
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddPrometheusExporter());
-// === KRAJ OBSERVABILITY KONFIGURACIJE ===
 
 
-// --- Konfiguracija Neo4j ---
+// Baza Neo4j
 builder.Services.AddSingleton<IDriver>(provider =>
 {
     var configuration = provider.GetRequiredService<IConfiguration>();
@@ -58,10 +55,9 @@ builder.Services.AddSingleton<IDriver>(provider =>
     return GraphDatabase.Driver(uri, AuthTokens.Basic(user, password));
 });
 
-// Registrujemo naš servisni sloj
 builder.Services.AddScoped<IFollowerService, FollowerService>();
 
-// --- Konfiguracija Autentifikacije ---
+// Autentifikacija
 var jwtKey = builder.Configuration["JwtKey"];
 if (string.IsNullOrEmpty(jwtKey))
 {
@@ -77,8 +73,8 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false, // U mikroservisima, issuer se često ne validira
-        ValidateAudience = false, // Niti audience
+        ValidateIssuer = false,
+        ValidateAudience = false,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
@@ -104,7 +100,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Dodaj middleware za autentikaciju i autorizaciju
 app.UseAuthentication();
 app.UseAuthorization();
 app.Use(async (context, next) =>
@@ -135,12 +130,11 @@ async static Task SeedDatabaseAsync(IHost app)
         var configuration = services.GetRequiredService<IConfiguration>();
         var driver = services.GetRequiredService<IDriver>();
 
-        // Ovde možete dodati i retry logiku koju sam predložio
         try
         {
             logger.LogInformation("Starting database seeding...");
             
-            // 1. Preuzimanje svih korisnika iz stakeholders-service
+            // korisnici iz stakeholders servisa
             var stakeholdersUrl = configuration["ServiceUrls:Stakeholders"];
             var client = httpClientFactory.CreateClient();
             var response = await client.GetAsync($"{stakeholdersUrl}/api/users");
@@ -154,7 +148,7 @@ async static Task SeedDatabaseAsync(IHost app)
                 return;
             }
 
-            // 2. Popunjavanje Neo4j baze
+            // popunjavamo bazu
             await using var session = driver.AsyncSession();
             await session.ExecuteWriteAsync(async tx => await tx.RunAsync("MATCH (n) DETACH DELETE n"));
             logger.LogInformation("Cleared existing data from Neo4j.");
@@ -173,7 +167,6 @@ async static Task SeedDatabaseAsync(IHost app)
             });
             logger.LogInformation($"Successfully seeded {usersFromStakeholders.Count} users with roles into Neo4j.");
 
-            // 3. Kreiranje veza praćenja
             await session.ExecuteWriteAsync(async tx =>
             {
                 // Mika (3) prati Anu (4)
@@ -199,7 +192,6 @@ async static Task SeedDatabaseAsync(IHost app)
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred during database seeding.");
-            // Opciono: možete odlučiti da zaustavite aplikaciju ako seeding ne uspe
             // Environment.Exit(1);
         }
     }

@@ -14,7 +14,7 @@ namespace tour_service.Models
         public string TourId { get; set; } = string.Empty;
 
         public long TouristId { get; set; }
-        public string Status { get; set; } = "active"; // Postavljamo "active" kao podrazumevani status
+        public string Status { get; set; } = "active"; // completed, abandoned
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public DateTime LastActivityTime { get; set; }

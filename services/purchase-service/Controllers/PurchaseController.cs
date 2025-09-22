@@ -6,7 +6,6 @@ using System.Security.Claims;
 
 namespace purchase_service.Controllers
 {
-    // DTO received from the frontend
     public class AddToCartDto
     {
         public required string TourId { get; set; }
@@ -19,38 +18,10 @@ namespace purchase_service.Controllers
     {
         private readonly Services.PurchaseService _purchaseService;
 
-        // The service is injected here via the constructor
         public PurchaseController(Services.PurchaseService purchaseService)
         {
             _purchaseService = purchaseService;
         }
-
-        /*[HttpPost("cart/add")]
-        [Authorize(Roles = "tourist")]
-        public async Task<IActionResult> AddToCart([FromBody] AddToCartDto dto)
-        {
-            try
-            {
-                var touristId = GetCurrentUserId();
-                var updatedCart = await _purchaseService.AddToCartAsync(touristId, dto.TourId);
-                return Ok(updatedCart);
-            }
-            catch (InvalidOperationException ex)
-            {
-                // This catches specific, expected errors like "tour already in cart"
-                return BadRequest(ex.Message);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                // This catches the error if the tour doesn't exist
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                // This catches unexpected errors like service connection problems
-                return StatusCode(500, $"An internal error occurred: {ex.Message}");
-            }
-        }*/
 
         [HttpGet("cart")]
         [Authorize(Roles = "tourist")]
@@ -61,35 +32,14 @@ namespace purchase_service.Controllers
 
             if (cart == null)
             {
-                // If the user has never added anything, return an empty cart structure
                 return Ok(new { Items = new List<object>(), TotalPrice = 0 });
             }
 
-            // Calculate the total price
             var totalPrice = cart.Items.Sum(item => item.Price);
 
             return Ok(new { cart.Items, TotalPrice = totalPrice });
         }
 
-        /*[HttpDelete("cart/item/{tourId}")]
-        [Authorize(Roles = "tourist")]
-        public async Task<IActionResult> RemoveFromCart(string tourId)
-        {
-            try
-            {
-                var touristId = GetCurrentUserId();
-                var updatedCart = await _purchaseService.RemoveFromCartAsync(touristId, tourId);
-                return Ok(updatedCart);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An internal error occurred: {ex.Message}");
-            }
-        }*/
         [HttpPost("cart/add")]
         [Authorize(Roles = "tourist")]
         public async Task<IActionResult> AddToCart([FromBody] AddToCartDto dto)
@@ -99,7 +49,6 @@ namespace purchase_service.Controllers
                 var touristId = GetCurrentUserId();
                 var updatedCart = await _purchaseService.AddToCartAsync(touristId, dto.TourId);
 
-                // ISPRAVKA: Izračunaj TotalPrice i vrati konzistentan objekat
                 var totalPrice = updatedCart.Items.Sum(item => item.Price);
                 return Ok(new { Items = updatedCart.Items, TotalPrice = totalPrice });
             }
@@ -119,7 +68,7 @@ namespace purchase_service.Controllers
         {
             try
             {
-                var touristId = GetCurrentUserId(); // Imate ispravan touristId ovde
+                var touristId = GetCurrentUserId();
 
                 var updatedCart = await _purchaseService.RemoveFromCartAsync(touristId, tourId);
 
@@ -137,13 +86,12 @@ namespace purchase_service.Controllers
         }
 
 
-        // Helper method to get the current user's ID from the JWT token
+        //id iz jwt tokena
         private long GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out var userId))
             {
-                // This should not happen if the [Authorize] attribute is working correctly
                 throw new InvalidOperationException("User ID could not be determined from the token.");
             }
             return userId;
@@ -156,13 +104,11 @@ namespace purchase_service.Controllers
             try
             {
                 var touristId = GetCurrentUserId();
-                // ISPRAVKA: Pozivamo servis umesto direktnog pristupa bazi
                 var tokens = await _purchaseService.GetPurchaseTokensAsync(touristId);
                 return Ok(tokens);
             }
             catch (Exception ex)
             {
-                // Dobra praksa je imati obradu grešaka i ovde
                 return StatusCode(500, $"An internal error occurred: {ex.Message}");
             }
         }
@@ -178,31 +124,27 @@ namespace purchase_service.Controllers
                 var touristId = GetCurrentUserId();
                 await _purchaseService.CheckoutAsync(touristId);
 
-                // Ako nema greške, checkout je uspeo
                 return Ok(new { message = "Purchase successful!" });
             }
             catch (InvalidOperationException ex)
             {
-                // Hvata greške kao "korpa je prazna" ili "tura nije dostupna"
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                // Hvata kritične greške kao "plaćanje nije uspelo" ili greške u transakciji
                 return StatusCode(500, ex.Message);
             }
         }
 
 
 
-        [HttpGet("my-purchased-tours")] // Bolje ime za endpoint
+        [HttpGet("my-purchased-tours")]
         [Authorize(Roles = "tourist")]
         public async Task<IActionResult> GetMyPurchasedTours()
         {
             try
             {
                 var touristId = GetCurrentUserId();
-                // Pozivamo novu, pametnu metodu iz servisa
                 var purchasedTours = await _purchaseService.GetPurchasedToursWithDetailsAsync(touristId);
                 return Ok(purchasedTours);
             }

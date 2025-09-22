@@ -1,14 +1,14 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using System.Collections.Generic; // Dodajemo ovo za List<T>
-using System; // Dodajemo ovo za DateTime
+using System.Collections.Generic;
+using System;
 namespace tour_service.Models
 {
     public enum TransportType
     {
-        Walk,  // Vrednost 0
-        Bike,  // Vrednost 1
-        Car    // Vrednost 2
+        Walk,  // 0
+        Bike,  // 1
+        Car    // 2
     }
 
     public class Tour
@@ -24,9 +24,9 @@ namespace tour_service.Models
         public DateTime CreationDate { get; set; }
 
         public List<string> Tags { get; set; } = new();
-        public string Status { get; set; } = "draft"; // Postavljamo "draft" kao podrazumevani statusI: draft, published i archived.
+        public string Status { get; set; } = "draft"; //  draft, published i archived.
         public double Price { get; set; }
-        public DateTime? PublishTime { get; set; } // kaDA JE PUBLISHED PSOTAVIS I OVO
+        public DateTime? PublishTime { get; set; } // kada je published
         public DateTime? ArchiveTime { get; set; }
         public double DistanceKm { get; set; }
         public List<TransportTime> TransportTimes { get; set; } = new();
@@ -63,11 +63,9 @@ namespace tour_service.Models
         public int DurationMinutes { get; set; }
     }
 
-    // U fajlu: tour-service/Controllers/ToursController.cs
 
     public class PublishedTourDto
     {
-        // --- Postojeća polja ---
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
@@ -76,18 +74,8 @@ namespace tour_service.Models
         public double Price { get; set; }
         public string? FirstKeyPointName { get; set; }
         public string? FirstKeyPointImageUrl { get; set; }
-
-        // --- DODATA POLJA PREMA VAŠEM ZAHTEVU ---
-
-        // Dužina ture u kilometrima
         public double DistanceKm { get; set; }
-
-        // Lista sa vremenima prolaska (npr. 30min peške, 10min autom)
         public List<TransportTime> TransportTimes { get; set; } = new();
-
-        // Kada budete imali Reviews, dodajte i sledeću liniju:
-        // public List<Review> Reviews { get; set; } = new();
-        
         public double AverageGrade { get; set; }
     }
 }

@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/tijanicica/soa-project/services/blog-service/internal/model"
-	"github.com/tijanicica/soa-project/services/blog-service/internal/store"
 	"log"
 	"net/http"
 	"os"
@@ -14,10 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tijanicica/soa-project/services/blog-service/internal/model"
+	"github.com/tijanicica/soa-project/services/blog-service/internal/store"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
 	"context"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	pbStakeholders "github.com/tijanicica/soa-project/protos"
@@ -168,7 +170,6 @@ func (h *BlogHandler) CreateBlog(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdBlog)
 }
 
-// Funkcionalnost #7: Korisnik može da ostavi komentar na blog
 func (h *BlogHandler) AddComment(c *gin.Context) {
 	blogID, err := strconv.ParseInt(c.Param("blogId"), 10, 64)
 	if err != nil {
@@ -194,8 +195,6 @@ func (h *BlogHandler) AddComment(c *gin.Context) {
 		return
 	}
 
-	// --- POČETAK NOVE LOGIKE ---
-	// Nakon kreiranja, odmah dobavi info o autoru da bi ga vratio frontendu
 	url := fmt.Sprintf("http://stakeholders-service:8001/users/batch?ids=%d", createdComment.AuthorID)
 	resp, err := http.Get(url)
 	authorsInfo := make(map[int64]UserInfo)
@@ -219,12 +218,10 @@ func (h *BlogHandler) AddComment(c *gin.Context) {
 	} else {
 		commentWithAuthor.Author.Username = "You"
 	}
-	// --- KRAJ NOVE LOGIKE ---
 
 	c.JSON(http.StatusCreated, commentWithAuthor) // Vraćamo obogaćeni objekat
 }
 
-// Funkcionalnost #8: Korisnik može da lajkuje/dislajkuje blog
 func (h *BlogHandler) ToggleLike(c *gin.Context) {
 	blogID, err := strconv.ParseInt(c.Param("blogId"), 10, 64)
 	if err != nil {
@@ -267,29 +264,24 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 	}
 	currentUserID := userIDValue.(int64)
 
-	// --- POČETAK NOVE LOGIKE ---
-	// 2. Pozivamo followers-service da dobijemo listu ID-jeva korisnika koje pratimo
 	url := "http://followers-service:8004/api/followers/me/following"
 
-	// Kreiramo zahtev sa tokenom
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request for followers-service"})
 		return
 	}
-	// Prosleđujemo token iz originalnog zahteva
+
 	req.Header.Add("Authorization", c.GetHeader("Authorization"))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 
 	followingIDs := make(map[int64]bool)
-	// Uvek dodajemo sopstveni ID, da bismo videli i svoje blogove
 	followingIDs[currentUserID] = true
 
 	if err != nil {
 		log.Printf("Error fetching following list from followers-service: %v", err)
-		// U slučaju greške, nastavljamo dalje, ali ćemo videti samo sopstvene blogove
 	} else if resp.StatusCode == http.StatusOK {
 		defer resp.Body.Close()
 		var followingList []FollowingUser
@@ -303,32 +295,24 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 	} else {
 		log.Printf("Followers-service returned non-OK status: %d", resp.StatusCode)
 	}
-	// --- KRAJ NOVE LOGIKE ---
-
-	// 3. Dobavi SVE blogove iz baze
 	allBlogs, err := h.store.GetAllBlogs()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve blogs"})
 		return
 	}
 
-	// --- POČETAK FILTRIRANJA ---
-	// 4. Filtriraj blogove
 	var filteredBlogs []*model.BlogWithStats
 	for _, blog := range allBlogs {
 		if _, ok := followingIDs[blog.AuthorID]; ok {
 			filteredBlogs = append(filteredBlogs, blog)
 		}
 	}
-	// --- KRAJ FILTRIRANJA ---
 
-	// Ako je lista prazna nakon filtriranja, vrati praznu listu
 	if len(filteredBlogs) == 0 {
 		c.JSON(http.StatusOK, []*model.BlogWithStats{})
 		return
 	}
 
-	// 5. Sakupi ID-jeve autora SAMO za filtrirane blogove
 	authorIDs := make(map[int64]bool)
 	for _, blog := range filteredBlogs {
 		authorIDs[blog.AuthorID] = true
@@ -339,20 +323,17 @@ func (h *BlogHandler) GetAllBlogs(c *gin.Context) {
 		authorIDsForGrpc = append(authorIDsForGrpc, id)
 	}
 
-	// 3. Pozovi stakeholders-service da dobiješ informacije o autorima
-	// Unutar Docker mreže, koristimo ime servisa kao hostname.
+	// GRPC POZIV KA STAKEHOLDERS
 	grpcReq := &pbStakeholders.GetUsersInfoRequest{UserIds: authorIDsForGrpc}
 	grpcResp, err := h.stakeholdersClient.GetUsersInfo(context.Background(), grpcReq)
 
 	authorsInfo := make(map[int64]*pbStakeholders.UserInfo)
 	if err != nil {
 		log.Printf("Error calling GetUsersInfo gRPC: %v", err)
-		// Nastavljamo sa praznom mapom, fallback će raditi
 	} else {
 		authorsInfo = grpcResp.Users
 	}
 
-	// 4. Spoji informacije o autorima sa blogovima
 	for _, blog := range filteredBlogs {
 		if author, ok := authorsInfo[blog.AuthorID]; ok {
 			blog.Author.Username = author.Username
@@ -372,7 +353,6 @@ func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
 		return
 	}
 
-	// 1. Dobavi osnovne podatke o komentarima iz baze
 	comments, err := h.store.GetCommentsForBlog(blogID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comments"})
@@ -384,7 +364,6 @@ func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
 		return
 	}
 
-	// 2. Sakupi sve jedinstvene author ID-jeve iz komentara
 	authorIDs := make(map[int64]bool)
 	for _, comment := range comments {
 		authorIDs[comment.AuthorID] = true
@@ -395,7 +374,6 @@ func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
 		ids = append(ids, strconv.FormatInt(id, 10))
 	}
 
-	// 3. Pozovi stakeholders-service da dobiješ informacije o autorima
 	url := fmt.Sprintf("http://stakeholders-service:8001/users/batch?ids=%s", strings.Join(ids, ","))
 
 	resp, err := http.Get(url)
@@ -411,7 +389,6 @@ func (h *BlogHandler) GetAllCommentsForBlog(c *gin.Context) {
 		}
 	}
 
-	// 4. Kreiraj novu listu (slice) sa obogaćenim podacima
 	var commentsWithAuthors []*model.CommentWithAuthor
 	for _, comment := range comments {
 		cwa := &model.CommentWithAuthor{
@@ -451,25 +428,19 @@ func (h *BlogHandler) UpdateBlog(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	authorID := userID.(int64)
 
-	// Čitamo tekstualna polja. Ako nisu poslata, biće prazni stringovi.
 	title := c.PostForm("title")
 	descriptionMarkdown := c.PostForm("descriptionMarkdown")
 
-	// Čitamo listu postojećih slika koje treba obrisati.
-	// Frontend će ih slati kao niz, npr. imagesToDelete=url1&imagesToDelete=url2
 	imagesToDelete := c.PostFormArray("imagesToDelete")
 
-	// Čitamo NOVE slike koje treba uploadovati.
 	var newImageURLs []string
 	form, err := c.MultipartForm()
 
-	// `err` će postojati ako forma nije `multipart`, što je ok ako se menja samo tekst/brisanje.
 	if err == nil && form != nil {
-		files := form.File["images"] // Ključ za nove slike
+		files := form.File["images"]
 		if len(files) > 0 {
 			bucketName := "blog-images"
 			for i, file := range files {
-				// Generišemo jedinstveno ime fajla
 				extension := filepath.Ext(file.Filename)
 				uniqueFileName := fmt.Sprintf("user-%d-blog-%d-image-%d%s", authorID, time.Now().UnixNano(), i, extension)
 
@@ -498,7 +469,6 @@ func (h *BlogHandler) UpdateBlog(c *gin.Context) {
 		}
 	}
 
-	// Proveravamo da li je bar nešto poslato za ažuriranje.
 	if title == "" && descriptionMarkdown == "" && len(newImageURLs) == 0 && len(imagesToDelete) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No data provided for update."})
 		return
@@ -511,7 +481,6 @@ func (h *BlogHandler) UpdateBlog(c *gin.Context) {
 		DescriptionMarkdown: descriptionMarkdown,
 	}
 
-	// Pozivamo novu, moćnu store funkciju sa svim podacima
 	err = h.store.UpdateBlog(blogToUpdate, newImageURLs, imagesToDelete)
 	if err != nil {
 		if err == sql.ErrNoRows {

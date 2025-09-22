@@ -11,9 +11,6 @@ RUN go mod download
 
 # Kopiraj sav izvorni kod iz korena projekta
 COPY . .
-
-# Build-uj specifičnu aplikaciju (blog-service)
-# Važno: putanja do 'main' paketa je relativna u odnosu na WORKDIR (/src)
 RUN CGO_ENABLED=0 GOOS=linux go build -o /main ./services/blog-service/cmd/main
 
 # Stage 2: Production faza

@@ -2,11 +2,13 @@ package store
 
 import (
 	"database/sql"
+
 	"github.com/tijanicica/soa-project/services/stakeholders-service/internal/model"
 
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (s *Store) CreateUser(user *model.User) error {
@@ -77,13 +79,10 @@ func (s *Store) GetUserByID(id int64) (*model.User, error) {
 	return user, nil
 }
 
-// GetProfileByUserID pronalazi profil korisnika.
 func (s *Store) GetProfileByUserID(userID int64) (*model.Profile, error) {
 	profile := &model.Profile{}
-	// SELECT lista ostaje ista
 	row := s.db.QueryRow("SELECT id, user_id, first_name, last_name, profile_image_url, biography, motto FROM profiles WHERE user_id = ?", userID)
 
-	// Scan sada ide u naša nova sql.NullString polja
 	err := row.Scan(&profile.ID, &profile.UserID, &profile.FirstName, &profile.LastName, &profile.ProfileImageURL, &profile.Biography, &profile.Motto)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -94,7 +93,6 @@ func (s *Store) GetProfileByUserID(userID int64) (*model.Profile, error) {
 	return profile, nil
 }
 
-// UpdateProfile ažurira ili kreira profil korisnika.
 func (s *Store) UpdateProfile(profile *model.Profile) error {
 	_, err := s.db.Exec(`
 		INSERT INTO profiles (user_id, first_name, last_name, profile_image_url, biography, motto)
@@ -114,7 +112,6 @@ func (s *Store) GetUserByEmail(email string) (*model.User, error) {
 	user := &model.User{}
 	row := s.db.QueryRow("SELECT id FROM users WHERE email = ?", email)
 
-	// Treba nam samo da proverimo da li postoji red, ne trebaju nam svi podaci
 	err := row.Scan(&user.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -126,7 +123,6 @@ func (s *Store) GetUserByEmail(email string) (*model.User, error) {
 	return user, nil
 }
 
-// UnblockUser postavlja is_active status korisnika na true.
 func (s *Store) UnblockUser(userID int64) error {
 	_, err := s.db.Exec("UPDATE users SET is_active = TRUE WHERE id = ?", userID)
 	return err
@@ -139,7 +135,6 @@ func (s *Store) UpdatePosition(userID int64, latitude, longitude float64) error 
 
 func (s *Store) GetPosition(userID int64) (sql.NullFloat64, sql.NullFloat64, error) {
 	var lat, lon sql.NullFloat64
-	// Ovaj upit dohvata SAMO latitude i longitude
 	row := s.db.QueryRow("SELECT latitude, longitude FROM users WHERE id = ?", userID)
 	err := row.Scan(&lat, &lon)
 	if err != nil {
@@ -158,7 +153,6 @@ func (s *Store) GetUsersInfoByIDs(userIDs []int64) (map[int64]model.UserInfo, er
 		return make(map[int64]model.UserInfo), nil
 	}
 
-	// Kreiramo string sa placeholderima: "?,?,?"
 	placeholders := strings.Repeat("?,", len(userIDs)-1) + "?"
 	query := fmt.Sprintf(`
 		SELECT u.id, u.username, p.first_name, p.profile_image_url
