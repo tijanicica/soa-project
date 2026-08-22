@@ -2,7 +2,6 @@
 
 A microservices-based tourism application built as a Service-Oriented Architecture faculty project. Tourists browse and purchase guided tours, tour guides create and manage tours, and the platform layers in social features (blogs, following, reviews) plus a full observability stack.
 
-> **Status:** This branch consolidates all feature branches developed throughout the project into `main`, which had fallen behind. It's kept here as a **code showcase** — it reflects the final state of the implementation work rather than a maintained, guaranteed-to-run deployment.
 
 ## Architecture
 
@@ -109,6 +108,4 @@ If it comes up, services are reachable at:
 - Prometheus: http://localhost:9090
 - Jaeger UI: http://localhost:16686
 
-## History note
 
-`main` originally tracked only the earliest merged pull requests (through tour-location/reviews). The bulk of later work — followers, purchase/shopping cart, tour activation, gRPC gateway, and the logging/tracing/monitoring stack — landed on `develop` and `fixing-clean-code` but was never fast-forwarded into `main`. This branch merges `fixing-clean-code` (the most complete branch) into `main` to bring all of that code together in one place.
